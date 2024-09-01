@@ -1,6 +1,7 @@
 include:
   - board: seeeduino_xiao_ble
     shield: totem_left
+    snippet: zmk_usb_config
   - board: seeeduino_xiao_ble
     shield: totem_right
 # there is no settingsreset (needed) for the XIAO
