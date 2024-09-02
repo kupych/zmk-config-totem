@@ -4,4 +4,5 @@ include:
     snippet: zmk-usb-logging
   - board: seeeduino_xiao_ble
     shield: totem_right
+    snippet: zmk-usb-logging
 # there is no settingsreset (needed) for the XIAO
