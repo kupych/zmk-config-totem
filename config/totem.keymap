@@ -130,9 +130,9 @@ display-name= "SYM"                               ;
  bindings = <
 // ╷           ╷           ╷           ╷           ╷           ╷           ╷   ╷           ╷           ╷           ╷           ╷           ╷           ╷
 
-                &kp EXCL    &kp AT      &kp HASH    &kp DLR    &kp PERC        &kp CARET   &kp AMPR    &kp ASTR   &kp QUES     &kp SQT
-                &kp KP_PLUS &kp KP_EQ   &kp LPAR    &kp RPAR    &kp DQT         &kp KP_COLON &kp RBRK &kp LBRK &kp RBRC   &kp LBRC
-    &trans      &kp LT      &kp PIPE    &k MINS     &kp GT      &kp BSLS        &kp GRV      &kp UNDS &kp SLSH &kp TILDE  &kp SEMI &trans         
+                &kp EXCL    &kp AT      &kp HASH    &kp DLLR    &kp PRCNT        &kp CARET   &kp AMPS    &kp STAR   &kp QMARK     &kp SQT
+                &kp KP_PLUS &kp EQUAL   &kp LPAR    &kp RPAR    &kp DQT         &kp COLON &kp RBKT &kp LBKT &kp RBRC   &kp LBRC
+    &trans      &kp LT      &kp PIPE    &k MINS     &kp GT      &kp BSLH        &kp GRV      &kp UNDER &kp FSLH &kp TILDE  &kp SEMI &trans         
                                         &trans      &gif        &mo ADJ         &trans      &kp C_PP    &trans      
                         >;
                 };
