@@ -78,9 +78,9 @@ display-name= "BASE"                              ;
  bindings = <
 // ╷           ╷           ╷           ╷           ╷           ╷           ╷   ╷           ╷           ╷           ╷           ╷           ╷           ╷
 
-                &kp Q       &kp W       &kp F       &kp P       &kp B           &kp J       &kp L       &kp U       &kp Y       &kp SEMI
-                &mt LGUI A  &mt LALT R  &mt LCTRL S &mt LSHFT T &kp G           &kp M       &mt RSHFT N &mt RCTRL E &mt RALT I  &mt RGUI O
-    &out OUT_TOG &kp Z       &kp X       &kp C       &kp D       &kp V           &kp K       &kp H       &kp COMMA   &kp DOT     &kp FSLH    &kp BSLH 
+                 &kp Q       &kp W       &kp F       &kp P       &kp B           &kp J       &kp L       &kp U       &kp Y       &kp SEMI
+                 &mt LGUI A  &mt LALT R  &mt LCTRL S &mt LSHFT T &kp G           &kp M       &mt RSHFT N &mt RCTRL E &mt RALT I  &mt RGUI O
+    &out OUT_TOG &kp Z      &kp X       &kp C       &kp D       &kp V           &kp K       &kp H       &kp COMMA   &kp DOT     &kp FSLH    &kp BSLH 
                                         &kp DEL   &lt NAV TAB   &kp SPACE       &kp RET   &lt SYM ESC   &kp BSPC
                         >;
                 };
@@ -130,9 +130,9 @@ display-name= "SYM"                               ;
  bindings = <
 // ╷           ╷           ╷           ╷           ╷           ╷           ╷   ╷           ╷           ╷           ╷           ╷           ╷           ╷
 
-                &kp EXCL    &kp AT      &kp HASH    &kp DLLR    &kp PRCNT        &kp CARET   &kp AMPS    &kp STAR   &kp QMARK     &kp SQT
-                &kp KP_PLUS &kp EQUAL   &kp LPAR    &kp RPAR    &kp DQT         &kp COLON &kp RBKT &kp LBKT &kp RBRC   &kp LBRC
-    &trans      &kp LT      &kp PIPE    &k MINS     &kp GT      &kp BSLH        &kp GRV      &kp UNDER &kp FSLH &kp TILDE  &kp SEMI &trans         
+                &kp EXCL    &kp AT      &kp HASH    &kp DLLR    &kp PRCNT       &kp CARET   &kp AMPS    &kp STAR   &kp QMARK     &kp SQT
+                &kp KP_PLUS &kp EQUAL   &kp LPAR    &kp RPAR    &kp DQT         &kp COLON   &kp RBKT    &kp LBKT   &kp RBRC      &kp LBRC
+    &trans      &kp LT      &kp PIPE    &kp MINS    &kp GT      &kp BSLH        &kp GRV     &kp UNDER   &kp SLASH  &kp TILDE     &kp SEMI &trans         
                                         &trans      &gif        &mo ADJ         &trans      &kp C_PP    &trans      
                         >;
                 };
