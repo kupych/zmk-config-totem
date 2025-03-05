@@ -131,8 +131,8 @@ display-name= "SYM"                               ;
 // ╷           ╷           ╷           ╷           ╷           ╷           ╷   ╷           ╷           ╷           ╷           ╷           ╷           ╷
 
                 &kp EXCL    &kp AT      &kp HASH    &kp DLLR    &kp PRCNT       &kp CARET   &kp AMPS    &kp STAR   &kp QMARK     &kp SQT
-                &kp KP_PLUS &kp EQUAL   &kp LPAR    &kp RPAR    &kp DQT         &kp COLON   &kp RBKT    &kp LBKT   &kp RBRC      &kp LBRC
-    &trans      &kp LT      &kp PIPE    &kp MINS    &kp GT      &kp BSLH        &kp GRV     &kp UNDER   &kp SLASH  &kp TILDE     &kp SEMI &trans         
+                &kp PLUS    &kp EQUAL   &kp LPAR    &kp RPAR    &kp DQT         &kp COLON   &kp RBKT    &kp LBKT   &kp RBRC      &kp LBRC
+    &trans      &kp LT      &kp PIPE    &kp MINUS   &kp GT      &kp BSLH        &kp GRAVE   &kp UNDER   &kp SLASH  &kp TILDE     &kp SEMI &trans         
                                         &trans      &gif        &mo ADJ         &trans      &kp C_PP    &trans      
                         >;
                 };
