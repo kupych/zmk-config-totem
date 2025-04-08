@@ -43,25 +43,25 @@
         combo_lclk_l {
             timeout-ms = <50>;
             key-positions = <2 3>;
-            bindings = <&mkp LCLK>;
+            bindings = <&mkp MB1>;
         };
 
         combo_lclk_r {
             timeout-ms = <50>;
             key-positions = <6 7>;
-            bindings = <&mkp LCLK>;
+            bindings = <&mkp MB1>;
         };
 
         combo_rclk_l {
             timeout-ms = <50>;
             key-positions = <1 2>;
-            bindings = <&mkp RCLK>;
+            bindings = <&mkp MB2>;
         };
 
         combo_rclk_r {
             timeout-ms = <50>;
             key-positions = <7 8>;
-            bindings = <&mkp RCLK>;
+            bindings = <&mkp MB2>;
         };
     };
 
