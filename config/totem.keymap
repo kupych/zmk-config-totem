@@ -34,12 +34,6 @@
     combos {
         compatible = "zmk,combos";
 
-        combo_esc {
-            timeout-ms = <50>;
-            key-positions = <0 1>;
-            bindings = <&kp ESC>;
-        };
-
         combo_lclk_l {
             timeout-ms = <50>;
             key-positions = <2 3>;
@@ -54,14 +48,24 @@
 
         combo_rclk_l {
             timeout-ms = <50>;
-            key-positions = <1 2>;
+            key-positions = <1 0>;
             bindings = <&mkp MB2>;
         };
 
         combo_rclk_r {
             timeout-ms = <50>;
-            key-positions = <7 8>;
+            key-positions = <8 9>;
             bindings = <&mkp MB2>;
+        };
+
+        combo_mclk_l {
+            bindings = <&mkp MB3>;
+            key-positions = <2 1>;
+        };
+
+        combo_mclk_r {
+            bindings = <&mkp MB3>;
+            key-positions = <7 8>;
         };
     };
 
