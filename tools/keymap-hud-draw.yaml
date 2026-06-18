@@ -1,0 +1,27 @@
+# keymap-drawer draw config for the HUD overlay.
+# Yellow wireframe on a transparent background, so it reads as a heads-up
+# display floating over the desktop.
+draw_config:
+  # Transparent page background (the desktop shows through under mpv).
+  svg_extra_style: |
+    svg.keymap {
+      background-color: transparent;
+    }
+    /* Key + combo boxes: outline only, no fill. */
+    rect.key, rect.combo {
+      fill: none !important;
+      stroke: #ffd400 !important;
+      stroke-width: 1.4;
+    }
+    /* All legends/labels in yellow. */
+    text {
+      fill: #ffd400 !important;
+      font-weight: 600;
+    }
+    /* Trans/blank keys: dim them so the real keys stand out. */
+    rect.key.trans {
+      stroke: #5a4d00 !important;
+    }
+    text.key.trans {
+      fill: #5a4d00 !important;
+    }
