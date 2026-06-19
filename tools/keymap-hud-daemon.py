@@ -5,9 +5,11 @@ Live keymap HUD for the TOTEM (ZMK split, Hyprland/Wayland).
 A persistent daemon that draws a transparent, focus-free overlay (GTK4
 layer-shell) showing the current keymap layer, highlights keys as you press
 them (read from evdev), toggles on Super+K, and follows the active ZMK layer
-via sentinel keys (LANG1=layer1, LANG2=layer2, LANG3=layer3) emitted by the
-firmware. LANG/IME keys are used (not F13-F15) so the held sentinel doesn't
-leak into apps — terminals emit no bytes for them and nothing binds them.
+via sentinel keys (F16=layer1, F17=layer2, F18=layer3) emitted by the firmware.
+F16-F18 are used (not F13-F15, which dim the display on macOS, nor LANG1-3,
+which toggle the IME under fcitx) so the held sentinel is inert across hosts.
+Terminals still encode them, so ghostty is set to swallow F16-F18
+(keybind = fN = ignore); the daemon reads them straight off evdev regardless.
 
 Run with the SYSTEM python (has gi/Rsvg/evdev):  /usr/bin/python3 this.py
 Assets come from ~/.config/keymap-hud/ (see tools/gen-keymap-hud.sh).
@@ -32,9 +34,9 @@ HILITE = (1.0, 0.83, 0.0, 0.55)   # translucent yellow fill for pressed keys
 FADE_S = 0.22                     # how long a highlight lingers after release
 
 # Sentinel keys the firmware holds while a layer is active -> follow live layer.
-# These are HID LANG1/2/3 (KEY_HANGEUL/HANJA/KATAKANA in evdev): inert on a US
-# layout so they don't disturb typing, but still visible to our raw evdev read.
-SENTINEL_LAYER = {e.KEY_HANGEUL: 1, e.KEY_HANJA: 2, e.KEY_KATAKANA: 3}
+# F16/F17/F18: no default action on macOS or Linux, so the held key disturbs
+# nothing; ghostty is configured to swallow them so they don't reach vim.
+SENTINEL_LAYER = {e.KEY_F16: 1, e.KEY_F17: 2, e.KEY_F18: 3}
 
 # evdev keycode -> candidate legends (unshifted, shifted) as they appear in
 # keymap.yaml. We try each candidate against the current layer so symbol layers
