@@ -35,3 +35,17 @@ draw_config:
     text.key.trans {
       fill: #5a4d00 !important;
     }
+
+# Parse-time config (used by `keymap parse`): rewrite combo/macro bindings so
+# the chips show their real output instead of the raw behavior name. These
+# bindings only appear in combos, so nothing on the base layers is affected.
+parse_config:
+  raw_binding_map:
+    "&pipe_arrow": "|>"
+    "&thin_arrow": "->"
+    "&fat_arrow": "=>"
+    "&walrus": ":="
+    "&hud_toggle": "HUD"
+    "&mkp MB1": "L click"
+    "&mkp MB2": "R click"
+    "&mkp MB3": "M click"

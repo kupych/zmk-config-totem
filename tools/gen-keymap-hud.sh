@@ -14,7 +14,9 @@ mkdir -p "$OUT"
 rm -f "$OUT"/*.svg
 
 echo "Parsing $KEYMAP ..."
-uvx --from keymap-drawer keymap parse -z "$KEYMAP" > "$OUT/../keymap.yaml"
+# -c passes the same config used for drawing; its parse_config.raw_binding_map
+# rewrites combo/macro bindings (e.g. &walrus -> ":=") at parse time.
+uvx --from keymap-drawer keymap -c "$DRAW_CFG" parse -z "$KEYMAP" > "$OUT/../keymap.yaml"
 YAML="$OUT/../keymap.yaml"
 
 # Pull layer names (in order) from the parsed YAML. Layer headers end in a
