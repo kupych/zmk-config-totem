@@ -5,7 +5,9 @@ Live keymap HUD for the TOTEM (ZMK split, Hyprland/Wayland).
 A persistent daemon that draws a transparent, focus-free overlay (GTK4
 layer-shell) showing the current keymap layer, highlights keys as you press
 them (read from evdev), toggles on Super+K, and follows the active ZMK layer
-via sentinel keys (F13=layer1, F14=layer2, F15=layer3) emitted by the firmware.
+via sentinel keys (LANG1=layer1, LANG2=layer2, LANG3=layer3) emitted by the
+firmware. LANG/IME keys are used (not F13-F15) so the held sentinel doesn't
+leak into apps — terminals emit no bytes for them and nothing binds them.
 
 Run with the SYSTEM python (has gi/Rsvg/evdev):  /usr/bin/python3 this.py
 Assets come from ~/.config/keymap-hud/ (see tools/gen-keymap-hud.sh).
@@ -30,7 +32,9 @@ HILITE = (1.0, 0.83, 0.0, 0.55)   # translucent yellow fill for pressed keys
 FADE_S = 0.22                     # how long a highlight lingers after release
 
 # Sentinel keys the firmware holds while a layer is active -> follow live layer.
-SENTINEL_LAYER = {e.KEY_F13: 1, e.KEY_F14: 2, e.KEY_F15: 3}
+# These are HID LANG1/2/3 (KEY_HANGEUL/HANJA/KATAKANA in evdev): inert on a US
+# layout so they don't disturb typing, but still visible to our raw evdev read.
+SENTINEL_LAYER = {e.KEY_HANGEUL: 1, e.KEY_HANJA: 2, e.KEY_KATAKANA: 3}
 
 # evdev keycode -> candidate legends (unshifted, shifted) as they appear in
 # keymap.yaml. We try each candidate against the current layer so symbol layers

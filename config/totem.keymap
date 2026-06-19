@@ -34,58 +34,63 @@
     behaviors {
         // Layer-taps that also hold a "sentinel" key while the layer is active,
         // so the live keymap HUD (watching evdev) can follow the layer. Tap is
-        // TAB/ESC exactly as before; hold = momentary layer + F13/F14. Matches
-        // the built-in &lt feel (tap-preferred, 200ms) so typing is unchanged.
+        // TAB/ESC exactly as before; hold = momentary layer + LANG1/LANG2.
+        // Sentinels are IME language keys (HID LANG1-3): terminals emit no bytes
+        // for them and nothing here binds them, so they never leak into vim
+        // insert mode the way F13-F15 did. Matches the built-in &lt feel
+        // (tap-preferred, 200ms) so typing is unchanged.
         lt_nav: layer_tap_nav {
             compatible = "zmk,behavior-hold-tap";
             #binding-cells = <2>;
             flavor = "tap-preferred";
             tapping-term-ms = <200>;
-            bindings = <&mo_f13>, <&kp>;
+            bindings = <&mo_lang1>, <&kp>;
         };
         lt_sym: layer_tap_sym {
             compatible = "zmk,behavior-hold-tap";
             #binding-cells = <2>;
             flavor = "tap-preferred";
             tapping-term-ms = <200>;
-            bindings = <&mo_f14>, <&kp>;
+            bindings = <&mo_lang2>, <&kp>;
         };
     };
 
     macros {
         // Hold &mo <layer> together with the layer's sentinel key until release.
-        // mo_f13/mo_f14 take the layer number as a parameter (for the hold-taps
-        // above); adj_f15 is fixed to layer 3 (ADJ has no tap action).
-        mo_f13: mo_f13 {
+        // mo_lang1/mo_lang2 take the layer number as a parameter (for the hold-
+        // taps above); adj_lang3 is fixed to layer 3 (ADJ has no tap action).
+        // The sentinels are IME LANG keys (see lt_nav note) so they don't leak
+        // into apps; the HUD daemon maps LANG1->NAV, LANG2->SYM, LANG3->ADJ.
+        mo_lang1: mo_lang1 {
             compatible = "zmk,behavior-macro-one-param";
             #binding-cells = <1>;
             wait-ms = <0>;
             tap-ms = <0>;
             bindings = <&macro_param_1to1>,
-                       <&macro_press &mo MACRO_PLACEHOLDER &kp F13>,
+                       <&macro_press &mo MACRO_PLACEHOLDER &kp LANG1>,
                        <&macro_pause_for_release>,
                        <&macro_param_1to1>,
-                       <&macro_release &mo MACRO_PLACEHOLDER &kp F13>;
+                       <&macro_release &mo MACRO_PLACEHOLDER &kp LANG1>;
         };
-        mo_f14: mo_f14 {
+        mo_lang2: mo_lang2 {
             compatible = "zmk,behavior-macro-one-param";
             #binding-cells = <1>;
             wait-ms = <0>;
             tap-ms = <0>;
             bindings = <&macro_param_1to1>,
-                       <&macro_press &mo MACRO_PLACEHOLDER &kp F14>,
+                       <&macro_press &mo MACRO_PLACEHOLDER &kp LANG2>,
                        <&macro_pause_for_release>,
                        <&macro_param_1to1>,
-                       <&macro_release &mo MACRO_PLACEHOLDER &kp F14>;
+                       <&macro_release &mo MACRO_PLACEHOLDER &kp LANG2>;
         };
-        adj_f15: adj_f15 {
+        adj_lang3: adj_lang3 {
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
             wait-ms = <0>;
             tap-ms = <0>;
-            bindings = <&macro_press &mo 3 &kp F15>,
+            bindings = <&macro_press &mo 3 &kp LANG3>,
                        <&macro_pause_for_release>,
-                       <&macro_release &mo 3 &kp F15>;
+                       <&macro_release &mo 3 &kp LANG3>;
         };
 
         // Toggle the live keymap HUD overlay. The daemon (tools/keymap-hud-
@@ -251,7 +256,7 @@
         &kp ESC    &sk CLCK   &kp UP      &kp LGUI   &kp LBRC    &kp RBRC  &kp N7     &kp N8     &kp N9     &kp KP_PLUS
         &kp LSHFT  &kp LEFT   &kp DOWN    &kp RIGHT  &kp LBKT    &kp RBKT  &kp N4     &kp N5     &kp N6     &kp KP_MINUS
 &trans  &kp DEL    &kp PG_UP  &caps_word  &kp PG_DN  &kp LPAR    &kp RPAR  &kp N1     &kp N2     &kp N3     &kp KP_MULTIPLY  &kp UNDER
-                              &trans      &trans     &trans      &adj_f15  &kp N0     &trans
+                              &trans      &trans     &trans      &adj_lang3  &kp N0     &trans
             >;
         };
 
@@ -277,7 +282,7 @@
         &kp EXCL  &kp AT     &kp HASH   &kp DLLR  &kp PRCNT    &kp CARET  &kp AMPS   &kp STAR   &kp QMARK  &kp SQT
         &kp PLUS  &kp EQUAL  &kp LPAR   &kp RPAR  &kp DQT      &kp COLON  &kp RBKT   &kp LBKT   &kp RBRC   &kp LBRC
 &trans  &kp LT    &kp PIPE   &kp MINUS  &kp GT    &kp BSLH     &kp GRAVE  &kp UNDER  &kp SLASH  &kp TILDE  &kp SEMI  &trans
-                             &trans     &trans    &adj_f15     &trans     &kp C_PP   &trans
+                             &trans     &trans    &adj_lang3   &trans     &kp C_PP   &trans
             >;
         };
 
