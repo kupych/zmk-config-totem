@@ -7,16 +7,26 @@ draw_config:
     svg.keymap {
       background-color: transparent;
     }
-    /* Key + combo boxes: outline only, no fill. */
-    rect.key, rect.combo {
+    /* Key boxes: outline only, no fill. */
+    rect.key {
       fill: none !important;
       stroke: #ffd400 !important;
       stroke-width: 1.4;
     }
-    /* All legends/labels in yellow. */
+    /* Combo boxes: solid yellow chip so they pop out of the wireframe. */
+    rect.combo {
+      fill: #ffd400 !important;
+      stroke: #ffd400 !important;
+      stroke-width: 1.4;
+    }
+    /* All legends/labels in yellow... */
     text {
       fill: #ffd400 !important;
       font-weight: 600;
+    }
+    /* ...except combo labels, which sit on the solid yellow chip: black. */
+    text.combo {
+      fill: #000000 !important;
     }
     /* Trans/blank keys: dim them so the real keys stand out. */
     rect.key.trans {
