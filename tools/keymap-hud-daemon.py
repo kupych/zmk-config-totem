@@ -30,7 +30,10 @@ KEYMAP_YAML = os.path.join(HUD_DIR, "keymap.yaml")
 KBD_NAME = "TOTEM Keyboard"
 
 WIN_W, WIN_H = 1640, 760          # overlay size (≈ image aspect 2.159)
-HILITE = (1.0, 0.83, 0.0, 0.55)   # translucent yellow fill for pressed keys
+HILITE = (1.0, 0.83, 0.0, 0.62)   # translucent yellow fill for pressed keys
+HILITE_OUTLINE = (0.15, 0.10, 0.0, 0.9)  # dark edge so it reads on light backgrounds
+HILITE_SHADOW = (0.0, 0.0, 0.0, 0.35)    # soft drop shadow beneath the highlight
+HILITE_OUTLINE_W = 2.0            # outline stroke width (svg user units)
 FADE_S = 0.22                     # how long a highlight lingers after release
 
 # Sentinel keys the firmware holds while a layer is active -> follow live layer.
@@ -196,15 +199,24 @@ class HUD(Gtk.Application):
         s = min(width / layer.vbw, height / layer.vbh)
         cr.translate((width - layer.vbw * s) / 2, (height - layer.vbh * s) / 2)
         cr.scale(s, s)
-        cr.set_source_rgba(*HILITE)
         for pos in self.held | set(self.shown):
             if pos in layer.keypos:
                 kx, ky, rot = layer.keypos[pos]
                 cr.save()
                 cr.translate(layer.ox + kx, layer.oy + ky)
                 cr.rotate(math.radians(rot))
-                rounded_rect(cr, -28, -26, 55, 52, 6)
+                # Soft drop shadow (same box nudged down) for depth.
+                cr.set_source_rgba(*HILITE_SHADOW)
+                rounded_rect(cr, -28, -23, 55, 52, 6)
                 cr.fill()
+                # Yellow fill; keep the path so we can stroke its edge.
+                rounded_rect(cr, -28, -26, 55, 52, 6)
+                cr.set_source_rgba(*HILITE)
+                cr.fill_preserve()
+                # Dark outline so the highlight reads on light backgrounds.
+                cr.set_source_rgba(*HILITE_OUTLINE)
+                cr.set_line_width(HILITE_OUTLINE_W)
+                cr.stroke()
                 cr.restore()
 
     # ---- state changes (always via main thread) ----
