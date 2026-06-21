@@ -247,5 +247,22 @@ function M.stop()
   visible = false
 end
 
+-- Re-read positions.json + the layer PNGs from disk and rebuild the canvas,
+-- without a full Hammerspoon reload. Run this after regenerating the assets
+-- (gen-keymap-hud.sh && export-hud-assets.py):  totemHud.reload()
+function M.reload()
+  local fresh = hs.json.read(ASSET_DIR .. "/positions.json")
+  if fresh then data = fresh end
+  images = {}
+  for i, L in ipairs(data.layers) do
+    images[i] = hs.image.imageFromPath(ASSET_DIR .. "/" .. L.image)
+  end
+  local was_visible = visible
+  if canvas then canvas:delete(); canvas = nil end
+  build_canvas()
+  if was_visible then show() else hide() end
+  hs.alert.show("TOTEM HUD: reloaded")
+end
+
 M.start()
 return M

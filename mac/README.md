@@ -73,6 +73,16 @@ macOS-specific spots are marked `NOTE` in `keymap-hud.lua` and may need a tweak:
 
 ## Keeping it in sync
 
+The overlay art is **baked into PNGs**, separate from the Lua. So a Hammerspoon
+"Reload Config" alone will *not* pick up keymap/art changes — it just reloads
+the same PNGs. The full refresh is two steps:
+
+```sh
+./tools/gen-keymap-hud.sh && python3 mac/export-hud-assets.py   # regenerate PNGs
+```
+then either reload Hammerspoon, or call **`totemHud.reload()`** (re-reads the
+assets + rebuilds the canvas in place — no full reload needed).
+
 Unlike the Linux side (a systemd `.path` watcher auto-regenerates), this is
-manual: after editing the keymap, re-run step 2. You could wire the same with a
-`launchd` `WatchPaths` agent on `config/totem.keymap` if you want it automatic.
+manual. You could wire a `launchd` `WatchPaths` agent on `config/totem.keymap`
+to run the two commands automatically if you want it hands-off.
