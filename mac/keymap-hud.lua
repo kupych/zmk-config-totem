@@ -26,8 +26,8 @@ local M = {}
 ----------------------------------------------------------------- config -------
 local ASSET_DIR = os.getenv("HOME") .. "/.config/keymap-hud/mac"
 local FADE_S    = 0.22            -- how long a highlight lingers after release
-local WIDTH_FRAC = 0.55           -- overlay width as a fraction of the screen
-local BOTTOM_GAP = 100            -- px above the bottom of the screen
+local WIDTH_FRAC = 0.70           -- overlay width as a fraction of the screen
+local MAX_SCALE  = 2.0            -- cap vs native size (PNG is 2x; >1 softens a bit)
 
 local HILITE = {
   fill   = { red = 1.0, green = 0.83, blue = 0.0, alpha = 0.62 },
@@ -95,10 +95,10 @@ end
 local TOGGLE_CODE = hs.keycodes.map[TOGGLE_KEY]
 
 --------------------------------------------------------------- geometry -------
-local sf  = hs.screen.primaryScreen():frame()
-local DS  = math.min(1.0, (sf.w * WIDTH_FRAC) / data.canvas_w)   -- display scale
-local W, H = data.canvas_w * DS, data.canvas_h * DS
-local FRAME = { x = sf.x + (sf.w - W) / 2, y = sf.y + sf.h - H - BOTTOM_GAP, w = W, h = H }
+-- Display scale + size, recomputed by layout() on each show() so the overlay
+-- always lands centered on whatever screen is active (and tracks resolution
+-- changes). DS scales the baked point coordinates to the on-screen size.
+local DS, W, H = 1, data.canvas_w, data.canvas_h
 
 ----------------------------------------------------------------- state --------
 local canvas  = nil
@@ -108,6 +108,20 @@ local held    = {}           -- pos -> true (physically down)
 local shown   = {}           -- pos -> true (fading after release)
 local stack   = {}           -- layer number -> true (held sentinels)
 local tap     = nil
+
+-- Center the overlay on the active screen at WIDTH_FRAC of its width (capped at
+-- MAX_SCALE). Returns the frame; updates the live canvas + image if it exists.
+local function layout()
+  local sf = hs.screen.mainScreen():frame()
+  DS = math.min((sf.w * WIDTH_FRAC) / data.canvas_w, MAX_SCALE)
+  W, H = data.canvas_w * DS, data.canvas_h * DS
+  local frame = { x = sf.x + (sf.w - W) / 2, y = sf.y + (sf.h - H) / 2, w = W, h = H }
+  if canvas then
+    canvas:frame(frame)
+    canvas[1].frame = { x = 0, y = 0, w = W, h = H }
+  end
+  return frame
+end
 
 local function active_positions()
   local out = {}
@@ -148,7 +162,7 @@ local function redraw()
 end
 
 local function build_canvas()
-  canvas = hs.canvas.new(FRAME)
+  canvas = hs.canvas.new(layout())
   canvas:level(hs.canvas.windowLevels.overlay)
   -- NOTE: behavior flags — show over all spaces + fullscreen apps, don't
   -- participate in window cycling. Tune if it grabs focus or hides oddly.
@@ -175,7 +189,7 @@ local function set_layer(num)            -- num: ZMK layer 0..3
 end
 
 ------------------------------------------------------------ visibility --------
-local function show() visible = true; if canvas then canvas:show(); redraw() end end
+local function show() visible = true; if canvas then layout(); canvas:show(); redraw() end end
 local function hide() visible = false; if canvas then canvas:hide() end end
 function M.toggle() if visible then hide() else show() end end
 
