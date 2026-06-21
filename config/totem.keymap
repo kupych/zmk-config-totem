@@ -20,8 +20,7 @@
 #define NAV  1
 #define SYM  2
 #define ADJ  3
-#define TVP1 4
-#define TVP2 5
+#define GAME 4
 
 &mt {
     quick-tap-ms = <100>;
@@ -123,40 +122,49 @@
     combos {
         compatible = "zmk,combos";
 
+        // Mouse-click combos sit on adjacent top-row keys, which double as
+        // gaming keys (W/E/R etc.), so they're scoped to everything *except*
+        // GAME to avoid firing clicks mid-game.
         combo_lclk_l {
             timeout-ms = <20>;
             key-positions = <2 3>;
             bindings = <&mkp MB1>;
+            layers = <BASE NAV SYM ADJ>;
         };
 
         combo_lclk_r {
             timeout-ms = <20>;
             key-positions = <6 7>;
             bindings = <&mkp MB1>;
+            layers = <BASE NAV SYM ADJ>;
         };
 
         combo_rclk_l {
             timeout-ms = <20>;
             key-positions = <1 0>;
             bindings = <&mkp MB2>;
+            layers = <BASE NAV SYM ADJ>;
         };
 
         combo_rclk_r {
             timeout-ms = <20>;
             key-positions = <8 9>;
             bindings = <&mkp MB2>;
+            layers = <BASE NAV SYM ADJ>;
         };
 
         combo_mclk_l {
             bindings = <&mkp MB3>;
             key-positions = <2 1>;
             timeout-ms = <20>;
+            layers = <BASE NAV SYM ADJ>;
         };
 
         combo_mclk_r {
             bindings = <&mkp MB3>;
             key-positions = <7 8>;
             timeout-ms = <20>;
+            layers = <BASE NAV SYM ADJ>;
         };
 
         // Coding-operator combos, base layer only. Rare-letter key pairs keep
@@ -195,6 +203,16 @@
             timeout-ms = <50>;
             key-positions = <20 31>;
             bindings = <&kp F19>;
+        };
+
+        // Both top outer corners (Q + ;) -> toggle the GAME layer on/off.
+        // A deliberate two-handed chord so it never misfires during one-handed
+        // gaming, yet still reaches you to switch back off. No `layers`
+        // restriction so it works from any layer, including GAME itself.
+        combo_game {         // pos 0 + 9  ->  toggle GAME layer
+            timeout-ms = <50>;
+            key-positions = <0 9>;
+            bindings = <&tog GAME>;
         };
     };
 
@@ -302,6 +320,38 @@
         &bootloader  &bt BT_NXT  &bt BT_CLR_ALL  &bt BT_SEL 2  &bt BT_SEL 3    &trans  &kp F4  &kp F5  &kp F6  &kp F11
 &trans  &trans       &bt BT_PRV  &bt BT_SEL 4    &trans        &trans          &trans  &kp F1  &kp F2  &kp F3  &kp F10  &trans
                                  &trans        &trans  &trans    &trans  &trans  &trans
+            >;
+        };
+
+        // ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+        game_layer {
+            // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+
+            display-name = "GAME";
+
+            // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+            // Left half = QWERTY WASD (plain keys, no home-row mods), shifted one
+            // column right to suit the stagger so the pinky gets its own column;
+            // T/G/B move to that freed pinky column since the index side has no
+            // room. Right half = numpad (7-8-9 / 4-5-6 / 1-2-3 in the middle
+            // columns, like NAV) plus menu/chat keys and GRV for the dev console.
+            // Toggle on/off with the Q + ; corner combo or the &tog key.
+            //             ┏━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┓   ┏━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┓
+            //             ┃     T     ┃     Q     ┃     W     ┃     E     ┃     R     ┃   ┃     `     ┃     7     ┃     8     ┃     9     ┃     -     ┃
+            //             ┣━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━┫   ┣━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━┫
+            //             ┃     G     ┃     A     ┃     S     ┃     D     ┃     F     ┃   ┃    TAB    ┃     4     ┃     5     ┃     6     ┃     .     ┃
+            // ┏━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━┫   ┣━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━┓
+            // ┃    TAB    ┃     B     ┃     Z     ┃     X     ┃     C     ┃     V     ┃   ┃    ESC    ┃     1     ┃     2     ┃     3     ┃     0     ┃   GAME    ┃
+            // ┗━━━━━━━━━━━┻━━━━━━━━━━━┻━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━┫   ┣━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━┻━━━━━━━━━━━┻━━━━━━━━━━━┛
+            //                                     ┃   CTRL    ┃   SHIFT   ┃    SPC    ┃   ┃   ENTER   ┃   BSPC    ┃    DEL    ┃
+            //                                     ┗━━━━━━━━━━━┻━━━━━━━━━━━┻━━━━━━━━━━━┛   ┗━━━━━━━━━━━┻━━━━━━━━━━━┻━━━━━━━━━━━┛
+
+            bindings = <
+              &kp T       &kp Q       &kp W        &kp E        &kp R        &kp GRAVE  &kp N7     &kp N8     &kp N9      &kp MINUS
+              &kp G       &kp A       &kp S        &kp D        &kp F        &kp TAB    &kp N4     &kp N5     &kp N6      &kp DOT
+&kp TAB       &kp B       &kp Z       &kp X        &kp C        &kp V        &kp ESC    &kp N1     &kp N2     &kp N3      &kp N0     &tog GAME
+                                      &kp LCTRL    &kp LSHFT    &kp SPACE    &kp RET    &kp BSPC   &kp DEL
             >;
         };
 
