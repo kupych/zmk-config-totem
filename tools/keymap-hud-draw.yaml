@@ -7,9 +7,11 @@ draw_config:
     svg.keymap {
       background-color: transparent;
     }
-    /* Drop shadow on every art element so the yellow stays legible on light
-       backgrounds (librsvg honors the CSS drop-shadow() filter). */
-    text, rect.key, rect.combo {
+    /* Drop shadow so the yellow stays legible on light backgrounds. Applied
+       ONCE to the whole layer group (not per element) — a per-element filter
+       is ~100 separate blur passes that re-run on every layer switch and peg
+       the CPU. One group-level pass is cheap and looks the same. */
+    g[class^="layer-"] {
       filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.9));
     }
     /* Key boxes: outline only, no fill. */

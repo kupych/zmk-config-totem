@@ -174,7 +174,11 @@ class HUD(Gtk.Application):
         key = (idx, width, height)
         surf = self._cache.get(key)
         if surf is None:
-            self._cache.clear()  # only ever keep the current layer/size
+            # Keep every layer cached at the current size so switching layers is
+            # a surface swap, not a re-rasterize (the SVG filter makes rendering
+            # costly). Drop only surfaces left over from a previous window size.
+            for k in [k for k in self._cache if k[1:] != (width, height)]:
+                del self._cache[k]
             layer = self.layers[idx]
             surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
             c = cairo.Context(surf)
