@@ -255,42 +255,79 @@ class HUD(Gtk.Application):
         return False
 
     # ---- input ----
+    def _find_kbd(self):
+        """Return an open InputDevice for the TOTEM keyboard, or None."""
+        for path in evdev.list_devices():
+            try:
+                d = evdev.InputDevice(path)
+            except OSError:
+                continue  # device disappeared mid-enumeration
+            if d.name == KBD_NAME:
+                return d
+            d.close()
+        return None
+
+    def _reset_input_state(self):
+        # Drop keys/layers left "stuck" when the keyboard vanished mid-press.
+        self.held.clear(); self.shown.clear(); self.sentinels.clear()
+        self.meta = False
+        self.set_layer(0)
+        self.area.queue_draw()
+        return False
+
     def evdev_loop(self):
-        dev = next((evdev.InputDevice(p) for p in evdev.list_devices()
-                    if evdev.InputDevice(p).name == KBD_NAME), None)
-        if not dev:
-            print("keymap-hud: keyboard not found:", KBD_NAME)
+        # The TOTEM is wireless: it sleeps and reconnects, so its evdev node
+        # comes and goes. Re-acquire it forever — wait for it to appear, read
+        # until it disappears (read_loop raises OSError/ENODEV), reset any stuck
+        # highlight/layer state, then wait for it to come back.
+        while True:
+            dev = self._find_kbd()
+            if dev is None:
+                time.sleep(2)
+                continue
+            print(f"keymap-hud: reading {KBD_NAME} at {dev.path}", flush=True)
+            try:
+                for ev in dev.read_loop():
+                    if ev.type == e.EV_KEY:
+                        self._handle_key(ev)
+            except OSError as err:
+                print(f"keymap-hud: input lost ({err}); awaiting reconnect", flush=True)
+            finally:
+                try:
+                    dev.close()
+                except OSError:
+                    pass
+            GLib.idle_add(self._reset_input_state)
+            time.sleep(1)
+
+    def _handle_key(self, ev):
+        code, val = ev.code, ev.value  # val: 1 down, 0 up, 2 repeat
+        if code in META_KEYS:
+            self.meta = val != 0
             return
-        for ev in dev.read_loop():
-            if ev.type != e.EV_KEY:
-                continue
-            code, val = ev.code, ev.value  # val: 1 down, 0 up, 2 repeat
-            if code in META_KEYS:
-                self.meta = val != 0
-                continue
-            if code in SENTINEL_LAYER:
-                # Layers nest (ADJ is reached while NAV/SYM is held), so several
-                # sentinels can be down at once. Track them and show the topmost;
-                # fall back to BASE only when all are released.
-                if val:
-                    self.sentinels.add(code)
-                else:
-                    self.sentinels.discard(code)
-                top = max((SENTINEL_LAYER[c] for c in self.sentinels), default=0)
-                GLib.idle_add(self.set_layer, top)
-                continue
-            if val == 1 and self.meta and code == e.KEY_K:
-                GLib.idle_add(self.toggle)
-                continue
-            if val == 2:
-                continue
-            labels = EVDEV_TO_LABELS.get(code)
-            if not labels:
-                continue
-            lp = self.layers[self.current].label_pos
-            pos = next((lp[l] for l in labels if l in lp), None)
-            if pos is not None:
-                GLib.idle_add(self.press, pos, val == 1)
+        if code in SENTINEL_LAYER:
+            # Layers nest (ADJ is reached while NAV/SYM is held), so several
+            # sentinels can be down at once. Track them and show the topmost;
+            # fall back to BASE only when all are released.
+            if val:
+                self.sentinels.add(code)
+            else:
+                self.sentinels.discard(code)
+            top = max((SENTINEL_LAYER[c] for c in self.sentinels), default=0)
+            GLib.idle_add(self.set_layer, top)
+            return
+        if val == 1 and self.meta and code == e.KEY_K:
+            GLib.idle_add(self.toggle)
+            return
+        if val == 2:
+            return
+        labels = EVDEV_TO_LABELS.get(code)
+        if not labels:
+            return
+        lp = self.layers[self.current].label_pos
+        pos = next((lp[l] for l in labels if l in lp), None)
+        if pos is not None:
+            GLib.idle_add(self.press, pos, val == 1)
 
 
 if __name__ == "__main__":
