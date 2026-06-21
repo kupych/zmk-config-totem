@@ -96,18 +96,6 @@
                        <&macro_release &mo 3 &kp F18>;
         };
 
-        // Toggle the live keymap HUD overlay. The daemon (tools/keymap-hud-
-        // daemon.py) listens for Super+K on the host, so fire that chord from a
-        // single behavior. LGUI must be down before K so the host reads it as a
-        // shortcut; default macro tap timing is fine for that.
-        hud_toggle: hud_toggle {
-            compatible = "zmk,behavior-macro";
-            #binding-cells = <0>;
-            bindings = <&macro_press &kp LGUI>,
-                       <&macro_tap &kp K>,
-                       <&macro_release &kp LGUI>;
-        };
-
         // Multi-character coding operators, fired from base-layer combos so they
         // don't need the SYM layer. Default 0ms macro timing is fine for &kp.
         pipe_arrow: pipe_arrow {   // |>  (Elixir pipe)
@@ -199,12 +187,14 @@
         };
 
         // Both outer pinkies (bottom row, opposite halves) -> toggle keymap HUD.
-        // No `layers` restriction so it works from any layer; wide timeout since
-        // it's a deliberate two-handed chord, not a roll.
-        combo_hud {          // pos 20 + 31  ->  Super+K (HUD toggle)
+        // Sends F19: an inert key on Linux and macOS that the host HUD listens
+        // for (ghostty swallows it like the layer sentinels). No `layers`
+        // restriction so it works from any layer; wide timeout since it's a
+        // deliberate two-handed chord, not a roll.
+        combo_hud {          // pos 20 + 31  ->  F19 (HUD toggle)
             timeout-ms = <50>;
             key-positions = <20 31>;
-            bindings = <&hud_toggle>;
+            bindings = <&kp F19>;
         };
     };
 

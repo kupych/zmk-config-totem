@@ -34,13 +34,10 @@ local HILITE = {
   stroke = { red = 0.15, green = 0.10, blue = 0.0, alpha = 0.9 },
 }
 
--- Toggle hotkey. The firmware's pinky combo sends Cmd+K (LGUI+K), but Cmd+K is
--- heavily used on macOS (Slack quick-switcher, browser search), so we default
--- to a free chord. Options to make the pinky combo work:
---   * set this to {mods={"cmd"}, key="k"} and accept that it eats Cmd+K, or
---   * change the firmware hud_toggle to send an inert key (e.g. F19) and bind
---     that here — recommended, keeps it cross-platform and conflict-free.
-local TOGGLE = { mods = { "cmd", "alt" }, key = "k" }
+-- The firmware's pinky chord taps F19 — inert on macOS, swallowed by ghostty,
+-- and caught by the eventtap below. No hs.hotkey, no modifier conflicts. Want a
+-- manual shortcut as well? Bind one to M.toggle from your init.lua.
+local TOGGLE_KEY = "f19"
 
 ------------------------------------------------------ keycode -> label --------
 -- macOS virtual keycode -> candidate legend(s) as they appear in the SVG. We
@@ -95,6 +92,7 @@ for name, layernum in pairs(data.sentinels) do
   local code = hs.keycodes.map[name]
   if code then SENTINEL[code] = layernum end
 end
+local TOGGLE_CODE = hs.keycodes.map[TOGGLE_KEY]
 
 --------------------------------------------------------------- geometry -------
 local sf  = hs.screen.primaryScreen():frame()
@@ -110,7 +108,6 @@ local held    = {}           -- pos -> true (physically down)
 local shown   = {}           -- pos -> true (fading after release)
 local stack   = {}           -- layer number -> true (held sentinels)
 local tap     = nil
-local hotkey  = nil
 
 local function active_positions()
   local out = {}
@@ -187,6 +184,11 @@ local function on_key(e)
   local down = (e:getType() == hs.eventtap.event.types.keyDown)
   local code = e:getKeyCode()
 
+  if down and code == TOGGLE_CODE then    -- pinky chord (F19): toggle the HUD
+    M.toggle()
+    return false
+  end
+
   local layernum = SENTINEL[code]
   if layernum then                        -- layer sentinel: follow the layer
     if down then stack[layernum] = true else stack[layernum] = nil end
@@ -218,13 +220,11 @@ function M.start()
   tap = hs.eventtap.new(
     { hs.eventtap.event.types.keyDown, hs.eventtap.event.types.keyUp }, on_key)
   tap:start()
-  hotkey = hs.hotkey.bind(TOGGLE.mods, TOGGLE.key, M.toggle)
   return M
 end
 
 function M.stop()
   if tap then tap:stop(); tap = nil end
-  if hotkey then hotkey:delete(); hotkey = nil end
   if canvas then canvas:delete(); canvas = nil end
   visible = false
 end

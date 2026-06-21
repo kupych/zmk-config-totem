@@ -4,7 +4,7 @@ Live keymap HUD for the TOTEM (ZMK split, Hyprland/Wayland).
 
 A persistent daemon that draws a transparent, focus-free overlay (GTK4
 layer-shell) showing the current keymap layer, highlights keys as you press
-them (read from evdev), toggles on Super+K, and follows the active ZMK layer
+them (read from evdev), toggles on F19 (the pinky chord), and follows the layer
 via sentinel keys (F16=layer1, F17=layer2, F18=layer3) emitted by the firmware.
 F16-F18 are used (not F13-F15, which dim the display on macOS, nor LANG1-3,
 which toggle the IME under fcitx) so the held sentinel is inert across hosts.
@@ -41,6 +41,10 @@ FADE_S = 0.22                     # how long a highlight lingers after release
 # nothing; ghostty is configured to swallow them so they don't reach vim.
 SENTINEL_LAYER = {e.KEY_F16: 1, e.KEY_F17: 2, e.KEY_F18: 3}
 
+# Key the firmware's pinky chord taps to toggle the overlay. F19 like the
+# sentinels: inert on both OSes, swallowed by ghostty. (Was Super+K.)
+TOGGLE_KEY = e.KEY_F19
+
 # evdev keycode -> candidate legends (unshifted, shifted) as they appear in
 # keymap.yaml. We try each candidate against the current layer so symbol layers
 # (where e.g. "!" is physically Shift+1) highlight correctly.
@@ -73,8 +77,6 @@ for code, lbl in _SINGLE.items():
     EVDEV_TO_LABELS[code] = [lbl]
 for n in range(1, 13):
     EVDEV_TO_LABELS[getattr(e, f"KEY_F{n}")] = [f"F{n}"]
-
-META_KEYS = {e.KEY_LEFTMETA, e.KEY_RIGHTMETA}
 
 
 def rounded_rect(cr, x, y, w, h, r):
@@ -124,7 +126,6 @@ class HUD(Gtk.Application):
         self.shown = {}           # pos -> release stamp (stays lit until min time)
         self.sentinels = set()    # sentinel keycodes currently held (layer stack)
         self.visible = False
-        self.meta = False
         self._warmed = False      # have we pre-rendered all layers yet?
 
     def do_activate(self):
@@ -290,7 +291,6 @@ class HUD(Gtk.Application):
     def _reset_input_state(self):
         # Drop keys/layers left "stuck" when the keyboard vanished mid-press.
         self.held.clear(); self.shown.clear(); self.sentinels.clear()
-        self.meta = False
         self.set_layer(0)
         self.area.queue_draw()
         return False
@@ -322,8 +322,8 @@ class HUD(Gtk.Application):
 
     def _handle_key(self, ev):
         code, val = ev.code, ev.value  # val: 1 down, 0 up, 2 repeat
-        if code in META_KEYS:
-            self.meta = val != 0
+        if val == 1 and code == TOGGLE_KEY:
+            GLib.idle_add(self.toggle)
             return
         if code in SENTINEL_LAYER:
             # Layers nest (ADJ is reached while NAV/SYM is held), so several
@@ -335,9 +335,6 @@ class HUD(Gtk.Application):
                 self.sentinels.discard(code)
             top = max((SENTINEL_LAYER[c] for c in self.sentinels), default=0)
             GLib.idle_add(self.set_layer, top)
-            return
-        if val == 1 and self.meta and code == e.KEY_K:
-            GLib.idle_add(self.toggle)
             return
         if val == 2:
             return

@@ -51,18 +51,9 @@ are needed**; the Mac just listens for the same keys.
    *and* **Input Monitoring** → enable Hammerspoon. The eventtap won't see keys
    otherwise.
 
-5. **Toggle:** default is **⌘⌥K** (configurable at the top of the `.lua`).
-
-## The toggle / ⌘K caveat
-
-The firmware's pinky-chord sends **Cmd+K** (`LGUI+K`). On Linux that toggles the
-HUD because `Super+K` is free, but on macOS **Cmd+K is widely used** (Slack quick
-switcher, browser search). So the Lua defaults to a separate hotkey (⌘⌥K) you
-press manually. To make the *pinky chord* drive the Mac HUD, the cleanest fix is
-to change the firmware `hud_toggle` macro to send an **inert key like F19**
-(same family as the sentinels) and bind that here — then it's conflict-free on
-both OSes. (Doing that would also mean updating the Linux daemon, which currently
-toggles on `Super+K`.)
+5. **Toggle:** the pinky chord — it taps **F19**, same as Linux. F19 is inert on
+   macOS and ghostty swallows it, so nothing else reacts to it. (Want a manual
+   shortcut too? Bind one to `totemHud.toggle` in `init.lua`.)
 
 ## On-device tuning (I couldn't run Hammerspoon to verify)
 
