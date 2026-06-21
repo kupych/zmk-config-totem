@@ -35,6 +35,11 @@ draw_config:
     text.combo {
       fill: #000000 !important;
     }
+    /* Hide the layer-name header (top-left "BASE"/"NAVI"/...): the overlay
+       swaps the whole image per layer, so it's redundant. */
+    text.label {
+      display: none;
+    }
     /* Trans/blank keys: dim them so the real keys stand out. */
     rect.key.trans {
       stroke: #5a4d00 !important;
