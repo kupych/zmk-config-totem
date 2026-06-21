@@ -184,16 +184,20 @@ local function on_key(e)
   local down = (e:getType() == hs.eventtap.event.types.keyDown)
   local code = e:getKeyCode()
 
-  if down and code == TOGGLE_CODE then    -- pinky chord (F19): toggle the HUD
-    M.toggle()
-    return false
+  -- The HUD keys (F19 toggle, F16/F17/F18 sentinels) are dedicated to us, so
+  -- CONSUME them (return true): otherwise macOS plays the system alert "funk"
+  -- on every unhandled press, and a held auto-repeating sentinel beeps forever.
+  -- (Linux reads evdev passively and never beeps, so it doesn't consume.)
+  if code == TOGGLE_CODE then             -- pinky chord (F19): toggle the HUD
+    if down then M.toggle() end
+    return true
   end
 
   local layernum = SENTINEL[code]
   if layernum then                        -- layer sentinel: follow the layer
     if down then stack[layernum] = true else stack[layernum] = nil end
     set_layer(top_layer())
-    return false
+    return true
   end
 
   if not visible then return false end    -- only chase highlights when shown
