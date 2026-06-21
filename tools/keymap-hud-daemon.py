@@ -125,6 +125,7 @@ class HUD(Gtk.Application):
         self.sentinels = set()    # sentinel keycodes currently held (layer stack)
         self.visible = False
         self.meta = False
+        self._warmed = False      # have we pre-rendered all layers yet?
 
     def do_activate(self):
         legends = yaml.safe_load(open(KEYMAP_YAML))["layers"]
@@ -169,6 +170,12 @@ class HUD(Gtk.Application):
         threading.Thread(target=self.evdev_loop, daemon=True).start()
 
     # ---- rendering ----
+    def _prewarm(self, idx, w, h):
+        # Rasterize+cache a layer ahead of time; runs in idle. Returns False so
+        # GLib.idle_add fires it only once.
+        self._surface(idx, w, h)
+        return False
+
     def _surface(self, idx, width, height):
         """Rasterize a layer's SVG to an ImageSurface once; reuse across frames."""
         key = (idx, width, height)
@@ -222,6 +229,15 @@ class HUD(Gtk.Application):
                 cr.set_line_width(HILITE_OUTLINE_W)
                 cr.stroke()
                 cr.restore()
+
+        # First real draw tells us the overlay's true size; pre-rasterize the
+        # other layers at that size (in idle) so the first switch to each is a
+        # cache hit, not a cold ~40ms render.
+        if not self._warmed:
+            self._warmed = True
+            for i in range(len(self.layers)):
+                if i != self.current:
+                    GLib.idle_add(self._prewarm, i, width, height)
 
     # ---- state changes (always via main thread) ----
     def set_visible(self, vis):
