@@ -57,7 +57,7 @@ parse_config:
     "&thin_arrow": "->"
     "&fat_arrow": "=>"
     "&walrus": ":="
-    "&hud_toggle": "HUD"
+    "&kp F19": "HUD"
     "&mkp MB1": "LC"
     "&mkp MB2": "RC"
     "&mkp MB3": "MC"
