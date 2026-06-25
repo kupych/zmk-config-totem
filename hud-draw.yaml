@@ -58,6 +58,8 @@ parse_config:
     "&fat_arrow": "=>"
     "&walrus": ":="
     "&kp F19": "HUD"
+    "&reaper_tog": "REAPR"
+    "&game_tog": "GAME"
     "&mkp MB1": "LC"
     "&mkp MB2": "RC"
     "&mkp MB3": "MC"

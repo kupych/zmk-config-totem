@@ -21,6 +21,7 @@
 #define SYM  2
 #define ADJ  3
 #define GAME 4
+#define REAPER 5
 
 // WMOD = Cmd+Ctrl+Alt held as one chord -- the macOS window-manager (AeroSpace)
 // modifier. Shift is deliberately left OUT so WMOD+Shift stays a *distinct*
@@ -128,6 +129,26 @@
             #binding-cells = <0>;
             bindings = <&kp COLON &kp EQUAL>;
         };
+
+        // Toggle the REAPER app layer AND signal the keymap HUD: &tog flips the
+        // layer, &kp F20 taps the HUD's sticky sentinel (see hud.yaml's
+        // sticky_sentinels: F20 -> 5). Pressing again toggles both back off in
+        // lockstep. F20 is inert on Linux/macOS like F16-F19; swallow it in your
+        // terminal too (ghostty: keybind = f20=ignore).
+        reaper_tog: reaper_tog {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&tog REAPER>, <&kp F20>;
+        };
+
+        // Same idea for GAME: toggle the layer and tap F21 so the HUD follows
+        // it. F21 is inert on Linux but has no macOS virtual keycode, so this
+        // sticky layer is Linux-only (fine — no gaming on the Mac).
+        game_tog: game_tog {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&tog GAME>, <&kp F21>;
+        };
     };
 
     combos {
@@ -223,7 +244,17 @@
         combo_game {         // pos 0 + 9  ->  toggle GAME layer
             timeout-ms = <50>;
             key-positions = <0 9>;
-            bindings = <&tog GAME>;
+            bindings = <&game_tog>;
+        };
+
+        // Both inner top keys (B + J) -> toggle the REAPER app layer (and tell
+        // the HUD via reaper_tog). Two-handed and on rare-adjacent letters, so
+        // it won't misfire while typing. No `layers` restriction, so the same
+        // chord both enters REAPER and exits it.
+        combo_reaper {       // pos 4 + 5  ->  toggle REAPER layer
+            timeout-ms = <45>;
+            key-positions = <4 5>;
+            bindings = <&reaper_tog>;
         };
     };
 
@@ -361,12 +392,44 @@
             bindings = <
               &kp T       &kp Q       &kp W        &kp E        &kp R        &kp GRAVE  &kp N7     &kp N8     &kp N9      &kp MINUS
               &kp G       &kp A       &kp S        &kp D        &kp F        &kp TAB    &kp N4     &kp N5     &kp N6      &kp DOT
-&kp TAB       &kp B       &kp Z       &kp X        &kp C        &kp V        &kp ESC    &kp N1     &kp N2     &kp N3      &kp N0     &tog GAME
+&kp TAB       &kp B       &kp Z       &kp X        &kp C        &kp V        &kp ESC    &kp N1     &kp N2     &kp N3      &kp N0     &game_tog
                                       &kp LCTRL    &kp LSHFT    &kp SPACE    &kp RET    &kp BSPC   &kp DEL
             >;
         };
 
         // ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+        reaper_layer {
+            // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+
+            display-name = "REAPR";
+
+            // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+            // A starter REAPER layer. Reach/leave it with the B+J combo
+            // (combo_reaper). The left hand carries OS-standard edit chords that
+            // Reaper honours no matter your config (Save/Undo/Redo/Cut/Copy/
+            // Paste); the right hand + thumbs carry Reaper transport/edit
+            // actions. The latter use Reaper *defaults* — verify or rebind them
+            // in Reaper's Actions list (Actions > Show action list) to taste.
+            // Everything else is &trans (falls through to BASE). Tune freely.
+            //             ┏━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┓   ┏━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┓
+            //             ┃           ┃           ┃           ┃           ┃           ┃   ┃           ┃           ┃           ┃           ┃           ┃
+            //             ┣━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━┫   ┣━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━┫
+            //             ┃   SAVE    ┃   REDO    ┃   UNDO    ┃   SPLIT   ┃           ┃   ┃   MARK    ┃           ┃           ┃           ┃           ┃
+            // ┏━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━┫   ┣━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━┓
+            // ┃           ┃           ┃    CUT    ┃   COPY    ┃           ┃   PASTE   ┃   ┃           ┃           ┃           ┃           ┃           ┃           ┃
+            // ┗━━━━━━━━━━━┻━━━━━━━━━━━┻━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━┫   ┣━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━┻━━━━━━━━━━━┻━━━━━━━━━━━┛
+            //                                     ┃           ┃           ┃   PLAY    ┃   ┃    REC    ┃    ESC    ┃   BSPC    ┃
+            //                                     ┗━━━━━━━━━━━┻━━━━━━━━━━━┻━━━━━━━━━━━┛   ┗━━━━━━━━━━━┻━━━━━━━━━━━┻━━━━━━━━━━━┛
+
+            bindings = <
+              &trans      &trans       &trans       &trans       &trans         &trans   &trans     &trans       &trans     &trans
+              &kp LC(S)   &kp LS(LC(Z)) &kp LC(Z)   &kp S        &trans         &kp M    &trans     &trans       &trans     &trans
+&trans        &trans      &kp LC(X)    &kp LC(C)    &trans       &kp LC(V)      &trans   &trans     &trans       &trans     &trans    &trans
+                                       &trans       &trans       &kp SPACE      &kp LC(R) &kp ESC   &kp BSPC
+            >;
+        };
+
         // ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
     };
 };

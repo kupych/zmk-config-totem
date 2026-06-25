@@ -1,0 +1,21 @@
+# keymap-hud config for this TOTEM. The HUD tool itself lives in the standalone
+# repo: https://codeberg.org/kupych/zmk-keymap-hud  (see ~/zmk-keymap-hud).
+# Point it here with:  KEYMAP_HUD_CONFIG=~/zmk-config-totem/hud.yaml
+keymap: ~/zmk-config-totem/config/totem.keymap
+keyboard_name: "TOTEM Keyboard"
+draw_config: ./hud-draw.yaml      # TOTEM combo/macro relabels (|>, :=, HUD, clicks)
+
+# The firmware (config/totem.keymap) holds F16/F17/F18 per layer and taps F19
+# to toggle — see the mo_f16/lt_nav/adj_f18 macros and combo_hud there.
+sentinels:
+  F16: 1   # NAV
+  F17: 2   # SYM
+  F18: 3   # ADJ
+# Latching layers (toggled via &tog, so nothing is held): the firmware taps a
+# key when toggling, and the HUD latches that layer on/off to match.
+#   F20 -> REAPER (mac-safe), F21 -> GAME (Linux-only; macOS has no F21 keycode,
+#   so on a Mac the GAME entry is simply ignored).
+sticky_sentinels:
+  F20: 5   # REAPER
+  F21: 4   # GAME
+toggle: F19

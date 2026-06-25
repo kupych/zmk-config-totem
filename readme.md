@@ -28,3 +28,26 @@ TOTEM is a 38 key column-staggered split keyboard running [ZMK](https://zmk.dev/
 - the keyboard should now appear as a mass storage device
 - drag'n'drop the `totem_left-seeeduino_xiao_ble-zmk.uf2` file from the archive onto the storage device
 - repeat this process with the right half and the `totem_right-seeeduino_xiao_ble-zmk.uf2` file.
+
+## LIVE KEYMAP HUD
+
+The transparent on-screen keymap overlay (follows the active layer, highlights
+keys as you press them) now lives in its own keyboard-agnostic project:
+**[zmk-keymap-hud](https://codeberg.org/kupych/zmk-keymap-hud)**.
+
+This repo keeps only its config for that tool:
+
+- [`hud.yaml`](hud.yaml) — keyboard name, layer sentinels (F16/F17/F18), toggle
+  key (F19), pointing at `config/totem.keymap`.
+- [`hud-draw.yaml`](hud-draw.yaml) — the keymap-drawer style + TOTEM combo/macro
+  relabels (`|>`, `:=`, the HUD/click chips).
+
+The firmware side (the `mo_f16` / `lt_nav` / `adj_f18` macros and the `combo_hud`
+toggle in `config/totem.keymap`) is the worked example in the HUD repo's
+`docs/firmware.md`. Set it up with:
+
+```sh
+git clone https://codeberg.org/kupych/zmk-keymap-hud ~/zmk-keymap-hud
+~/zmk-keymap-hud/linux/install.sh --config ~/zmk-config-totem/hud.yaml   # Linux
+# macOS: see the HUD repo's docs/macos.md
+```
