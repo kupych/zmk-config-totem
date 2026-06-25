@@ -22,6 +22,17 @@
 #define ADJ  3
 #define GAME 4
 
+// WMOD = Cmd+Ctrl+Alt held as one chord -- the macOS window-manager (AeroSpace)
+// modifier. Shift is deliberately left OUT so WMOD+Shift stays a *distinct*
+// combo: WMOD+n switches desktop, WMOD+Shift+n moves a window there -- the same
+// super / super+shift split used on Hyprland. Cmd+Ctrl+Alt+<key> is effectively
+// unused by macOS apps, unlike GUI/Cmd+number and Cmd+arrows which collide
+// everywhere. Lives on the left outer pinky (base pos 20; &trans on
+// NAV/SYM/ADJ so it falls through). LC/LA wrap the LGUI keycode -> Cmd+Ctrl+Alt
+// all register while held. On Linux this reads as Super+Ctrl+Alt: free, and
+// clear of the Ctrl+Alt+F# TTY-switch chords.
+#define WMOD LC(LA(LGUI))
+
 &mt {
     quick-tap-ms = <100>;
     global-quick-tap;
@@ -240,7 +251,7 @@
             bindings = <
               &kp Q       &kp W       &kp F        &kp P        &kp B        &kp J    &kp L        &kp U        &kp Y       &kp SEMI
               &mt LGUI A  &mt LALT R  &mt LCTRL S  &mt LSHFT T  &kp G        &kp M    &mt RSHFT N  &mt RCTRL E  &mt RALT I  &mt RGUI O
-&none         &kp Z       &kp X       &kp C        &kp D        &kp V        &kp K    &kp H        &kp COMMA    &kp DOT     &kp FSLH    &kp BSLH
+&kp WMOD      &kp Z       &kp X       &kp C        &kp D        &kp V        &kp K    &kp H        &kp COMMA    &kp DOT     &kp FSLH    &kp BSLH
                                       &kp DEL      &lt_nav 1 TAB  &kp SPACE  &kp RET  &lt_sym 2 ESC  &kp BSPC
             >;
         };
