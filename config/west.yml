@@ -2,10 +2,18 @@ manifest:
   remotes:
     - name: zmkfirmware
       url-base: https://github.com/zmkfirmware
+    - name: urob
+      url-base: https://github.com/urob
   projects:
     - name: zmk
       remote: zmkfirmware
       revision: main
       import: app/west.yml
+    # Smart-layer behavior for the case modes (snake/kebab/camel/SCREAM):
+    # a layer that stays active while "identifier" keys are typed and drops
+    # out on anything else. See smart_case in totem.keymap.
+    - name: zmk-auto-layer
+      remote: urob
+      revision: v0.3
   self:
     path: config

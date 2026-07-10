@@ -63,3 +63,11 @@ parse_config:
     "&mkp MB1": "LC"
     "&mkp MB2": "RC"
     "&mkp MB3": "MC"
+    # Case-mode chords (both forms: pre/post #define expansion).
+    "&smart_case SNAKE": "sn_ke"
+    "&smart_case 6": "sn_ke"
+    "&smart_case KEBAB": "ke-bab"
+    "&smart_case 7": "ke-bab"
+    "&smart_case CAMEL": "caMel"
+    "&smart_case 8": "caMel"
+    "&scream": "SCRM"

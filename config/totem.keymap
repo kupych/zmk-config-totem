@@ -22,6 +22,9 @@
 #define ADJ  3
 #define GAME 4
 #define REAPER 5
+#define SNAKE 6
+#define KEBAB 7
+#define CAMEL 8
 
 // WMOD = Cmd+Ctrl+Alt held as one chord -- the macOS window-manager (AeroSpace)
 // modifier. Shift is deliberately left OUT so WMOD+Shift stays a *distinct*
@@ -66,6 +69,55 @@
             flavor = "tap-preferred";
             tapping-term-ms = <200>;
             bindings = <&mo_f17>, <&kp>;
+        };
+
+        // Case modes (zmk-auto-layer module): &smart_case <layer> turns a case
+        // layer on and keeps it on only while "identifier" keys are typed --
+        // alphas, digits, _ - and backspace/delete. Any other keycode (enter,
+        // tab-tap, esc-tap, punctuation) drops back to BASE automatically, so
+        // there is nothing to un-toggle. F16/F17 are the NAV/SYM sentinels:
+        // listing them lets you hold NAV mid-identifier to type digits without
+        // killing the mode. On the case layers SPACE becomes the separator
+        // (see the *_spc morphs); Shift+SPACE emits a real space, which also
+        // ends the mode since SPACE is not in this list.
+        smart_case: smart_case {
+            compatible = "zmk,behavior-auto-layer";
+            #binding-cells = <1>;
+            continue-list = <UNDER MINUS BSPC DEL F16 F17>;
+            ignore-alphas;
+            ignore-numbers;
+            ignore-modifiers;
+        };
+
+        // caps_word tuned for SCREAMING_SNAKE: same continue rules as
+        // smart_case (alphanumerics are implicit in caps-word) so it and the
+        // snake layer always switch off on the same keypress.
+        caps_snake: caps_snake {
+            compatible = "zmk,behavior-caps-word";
+            #binding-cells = <0>;
+            continue-list = <UNDER MINUS BSPC DEL F16 F17>;
+        };
+
+        // SPACE replacements for the case layers. Plain tap = the separator
+        // (or a sticky shift for camelCase); with Shift held it morphs into a
+        // real space, which both prints the space and exits the mode.
+        und_spc: und_spc {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp UNDER>, <&kp SPACE>;
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+        dash_spc: dash_spc {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp MINUS>, <&kp SPACE>;
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+        cam_spc: cam_spc {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&sk LSHFT>, <&kp SPACE>;
+            mods = <(MOD_LSFT|MOD_RSFT)>;
         };
     };
 
@@ -139,6 +191,14 @@
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
             bindings = <&tog REAPER>, <&kp F20>;
+        };
+
+        // SCREAMING_SNAKE = caps word + the snake layer at once. Both watch
+        // the same continue-list, so one exit keypress ends both together.
+        scream: scream {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&caps_snake &smart_case SNAKE>;
         };
 
         // Same idea for GAME: toggle the layer and tap F21 so the HUD follows
@@ -224,6 +284,36 @@
             key-positions = <21 22>;
             bindings = <&fat_arrow>;
             layers = <0>;
+        };
+
+        // Case-mode chords. The two everyday modes sit on deliberate two-handed
+        // inner-column pairs (like B+J for REAPER, so they never misfire); the
+        // two rarer ones ride one-handed rare-letter pairs like the operator
+        // combos above. Listed on the case layers too so you can jump straight
+        // from one mode to another mid-identifier.
+        combo_snake {        // V + K (bottom inner)  ->  snake_case
+            timeout-ms = <40>;
+            key-positions = <25 26>;
+            bindings = <&smart_case SNAKE>;
+            layers = <BASE SNAKE KEBAB CAMEL>;
+        };
+        combo_kebab {        // G + M (home inner)    ->  kebab-case
+            timeout-ms = <40>;
+            key-positions = <14 15>;
+            bindings = <&smart_case KEBAB>;
+            layers = <BASE SNAKE KEBAB CAMEL>;
+        };
+        combo_camel {        // X + C                 ->  camelCase
+            timeout-ms = <28>;
+            key-positions = <22 23>;
+            bindings = <&smart_case CAMEL>;
+            layers = <BASE SNAKE KEBAB CAMEL>;
+        };
+        combo_scream {       // H + ,                 ->  SCREAMING_SNAKE
+            timeout-ms = <28>;
+            key-positions = <27 28>;
+            bindings = <&scream>;
+            layers = <BASE SNAKE KEBAB CAMEL>;
         };
 
         // Both outer pinkies (bottom row, opposite halves) -> toggle keymap HUD.
@@ -427,6 +517,43 @@
               &kp LC(S)   &kp LS(LC(Z)) &kp LC(Z)   &kp S        &trans         &kp M    &trans     &trans       &trans     &trans
 &trans        &trans      &kp LC(X)    &kp LC(C)    &trans       &kp LC(V)      &trans   &trans     &trans       &trans     &trans    &trans
                                        &trans       &trans       &kp SPACE      &kp LC(R) &kp ESC   &kp BSPC
+            >;
+        };
+
+        // ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+        // Case-mode layers: identical to BASE except SPACE, which becomes the
+        // word separator (or a sticky shift for camelCase). Entered via the
+        // smart_case combos; they exit on their own -- see the smart_case
+        // behavior note. HRMs still work since every key falls through.
+
+        snake_layer {
+            display-name = "SNAKE";
+            bindings = <
+              &trans      &trans      &trans       &trans       &trans       &trans   &trans       &trans       &trans      &trans
+              &trans      &trans      &trans       &trans       &trans       &trans   &trans       &trans       &trans      &trans
+&trans        &trans      &trans      &trans       &trans       &trans       &trans   &trans       &trans       &trans      &trans      &trans
+                                      &trans       &trans       &und_spc     &trans   &trans       &trans
+            >;
+        };
+
+        kebab_layer {
+            display-name = "KEBAB";
+            bindings = <
+              &trans      &trans      &trans       &trans       &trans       &trans   &trans       &trans       &trans      &trans
+              &trans      &trans      &trans       &trans       &trans       &trans   &trans       &trans       &trans      &trans
+&trans        &trans      &trans      &trans       &trans       &trans       &trans   &trans       &trans       &trans      &trans      &trans
+                                      &trans       &trans       &dash_spc    &trans   &trans       &trans
+            >;
+        };
+
+        camel_layer {
+            display-name = "CAMEL";
+            bindings = <
+              &trans      &trans      &trans       &trans       &trans       &trans   &trans       &trans       &trans      &trans
+              &trans      &trans      &trans       &trans       &trans       &trans   &trans       &trans       &trans      &trans
+&trans        &trans      &trans      &trans       &trans       &trans       &trans   &trans       &trans       &trans      &trans      &trans
+                                      &trans       &trans       &cam_spc     &trans   &trans       &trans
             >;
         };
 
