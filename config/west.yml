@@ -12,8 +12,11 @@ manifest:
     # Smart-layer behavior for the case modes (snake/kebab/camel/SCREAM):
     # a layer that stays active while "identifier" keys are typed and drops
     # out on anything else. See smart_case in totem.keymap.
+    # Tracks main, not a release tag: zmk above tracks main too, and the
+    # module's tags lag ZMK API changes (v0.3 predates the `locking` arg
+    # added to zmk_keymap_layer_activate and fails to compile).
     - name: zmk-auto-layer
       remote: urob
-      revision: v0.3
+      revision: main
   self:
     path: config
