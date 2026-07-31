@@ -25,6 +25,7 @@
 #define SNAKE 6
 #define KEBAB 7
 #define CAMEL 8
+#define PHONE 9
 
 // WMOD = Cmd+Ctrl+Alt held as one chord -- the macOS window-manager (AeroSpace)
 // modifier. Shift is deliberately left OUT so WMOD+Shift stays a *distinct*
@@ -36,6 +37,20 @@
 // all register while held. On Linux this reads as Super+Ctrl+Alt: free, and
 // clear of the Ctrl+Alt+F# TTY-switch chords.
 #define WMOD LC(LA(LGUI))
+
+// The layer keys hold F16/F17/F18 alongside &mo, and the sticky toggles tap
+// F19/F20/F21, purely so the desktop keymap-hud daemon (hud.yaml) can follow
+// the active layer. Harmless on macOS/Linux, where F13-F24 have no default
+// action -- but a host that *decodes* them turns every layer press into
+// garbage: iOS/Termius renders F16 as ^P and F17 as ^Q, and ^Q is XON, so a
+// stray SYM hold can freeze terminal output until you send ^S/^Q by hand.
+//
+// PHONE is the escape hatch: an override layer that swaps the two thumb
+// layer-taps for stock &lt, dropping the sentinels. It rides on the BT profile
+// (see phone_sel/host_sel) so switching hosts switches the policy in one press
+// -- no reflash, which matters when the host changes on a train and not just
+// at the start of a trip. Profile 4 is the phone; 0-3 are HUD hosts.
+#define PHONE_PROFILE 4
 
 &mt {
     quick-tap-ms = <100>;
@@ -157,6 +172,39 @@
             bindings = <&macro_press &mo 3 &kp F18>,
                        <&macro_pause_for_release>,
                        <&macro_release &mo 3 &kp F18>;
+        };
+
+        // Profile-select keys that also set the sentinel policy. ZMK has no way
+        // to condition a binding on the active BT profile (conditional-layers
+        // key off other *layers*, not the endpoint), so instead of reading the
+        // profile we set both at once from the one key that already means
+        // "I changed host". &to rather than &tog: pressing the phone key twice
+        // must stay on phone, not flip back. &to BASE also clears a toggled
+        // GAME/REAPER, which is what you want when handing the board to a
+        // different machine anyway.
+        //
+        // Caveat: &bt BT_NXT / BT_PRV still cycle profiles without touching the
+        // layer, so use the explicit BT_SEL keys when the host actually changes.
+        phone_sel: phone_sel {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&bt BT_SEL PHONE_PROFILE>, <&to PHONE>;
+        };
+        // Also drops the phone's link on the way out. iOS hides the on-screen
+        // keyboard for as long as *any* HID keyboard is connected, and merely
+        // selecting another profile doesn't disconnect the old one -- so
+        // without this the phone stays keyboard-less until you disconnect by
+        // hand in Settings. BT_DISC only works on an *inactive* profile (the
+        // active one reconnects immediately), hence the ordering: BT_SEL first
+        // demotes the phone, then BT_DISC can take it down. Default macro
+        // wait-ms (100) gives the switch time to land before the disconnect.
+        host_sel: host_sel {
+            compatible = "zmk,behavior-macro-one-param";
+            #binding-cells = <1>;
+            bindings = <&macro_param_1to2>,
+                       <&macro_tap &bt BT_SEL MACRO_PLACEHOLDER>,
+                       <&macro_tap &bt BT_DISC PHONE_PROFILE>,
+                       <&macro_tap &to BASE>;
         };
 
         // Multi-character coding operators, fired from base-layer combos so they
@@ -448,9 +496,9 @@
             //                                     ┗━━━━━━━━━━━┻━━━━━━━━━━━┻━━━━━━━━━━━┛   ┗━━━━━━━━━━━┻━━━━━━━━━━━┻━━━━━━━━━━━┛
 
             bindings = <
-        &sys_reset   &bt BT_CLR  &out OUT_TOG    &bt BT_SEL 0  &bt BT_SEL 1    &trans  &kp F7  &kp F8  &kp F9  &kp F12
-        &bootloader  &bt BT_NXT  &bt BT_CLR_ALL  &bt BT_SEL 2  &bt BT_SEL 3    &trans  &kp F4  &kp F5  &kp F6  &kp F11
-&trans  &trans       &bt BT_PRV  &bt BT_SEL 4    &trans        &trans          &trans  &kp F1  &kp F2  &kp F3  &kp F10  &trans
+        &sys_reset   &bt BT_CLR  &out OUT_TOG    &host_sel 0   &host_sel 1     &trans  &kp F7  &kp F8  &kp F9  &kp F12
+        &bootloader  &bt BT_NXT  &bt BT_CLR_ALL  &host_sel 2   &host_sel 3     &trans  &kp F4  &kp F5  &kp F6  &kp F11
+&trans  &trans       &bt BT_PRV  &phone_sel      &trans        &trans          &trans  &kp F1  &kp F2  &kp F3  &kp F10  &trans
                                  &trans        &trans  &trans    &trans  &trans  &trans
             >;
         };
@@ -554,6 +602,24 @@
               &trans      &trans      &trans       &trans       &trans       &trans   &trans       &trans       &trans      &trans
 &trans        &trans      &trans      &trans       &trans       &trans       &trans   &trans       &trans       &trans      &trans      &trans
                                       &trans       &trans       &cam_spc     &trans   &trans       &trans
+            >;
+        };
+
+        // ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+        // Sentinel-free thumbs for hosts that decode F13-F24 (see the PHONE
+        // note at the top). Sits above NAV/SYM in the stack, so it wins on the
+        // two thumb positions while every &trans still falls through to
+        // whatever layer is underneath -- NAV and SYM are unaffected. Stock &lt
+        // is tap-preferred/200ms, the same feel lt_nav/lt_sym were tuned to, so
+        // typing is identical; only the F16/F17 hold is gone.
+        phone_layer {
+            display-name = "PHONE";
+            bindings = <
+              &trans      &trans      &trans       &trans       &trans       &trans   &trans       &trans       &trans      &trans
+              &trans      &trans      &trans       &trans       &trans       &trans   &trans       &trans       &trans      &trans
+&trans        &trans      &trans      &trans       &trans       &trans       &trans   &trans       &trans       &trans      &trans      &trans
+                                      &trans       &lt 1 TAB    &trans       &trans   &lt 2 ESC    &trans
             >;
         };
 

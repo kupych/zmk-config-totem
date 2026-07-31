@@ -71,3 +71,12 @@ parse_config:
     "&smart_case CAMEL": "caMel"
     "&smart_case 8": "caMel"
     "&scream": "SCRM"
+    # Readable stand-ins for bindings keymap-drawer can't label itself:
+    # the WMOD pinky (Cmd+Ctrl+Alt renders as an overflowing "Ctl+Alt+LGUI"),
+    # the thumb layer-taps (hold side leaked the raw sentinel macro names),
+    # and caps-word on NAV.
+    "&kp LC(LA(LGUI))": "WMOD"
+    "&mo_f16 1": "NAV"
+    "&mo_f17 2": "SYM"
+    "&adj_f18": "ADJ"
+    "&caps_word": "CWORD"
