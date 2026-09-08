@@ -1,13 +1,20 @@
 manifest:
   remotes:
-    - name: zmkfirmware
-      url-base: https://github.com/zmkfirmware
+    - name: kupych
+      url-base: https://github.com/kupych
     - name: urob
       url-base: https://github.com/urob
   projects:
+    # Our ZMK fork, tracking upstream main plus CONFIG_ZMK_SPLIT_CHARGING_STATE:
+    # each half's USB power state, published to the host on a vendor
+    # characteristic. Stock ZMK only implements BAS 0x2a19, which has no
+    # charging flag, and a BLE split proxies the peripheral's level over
+    # standard BAS too, so there was nowhere to put one. Read by
+    # tools/totem-battery.sh; rebase on zmkfirmware/zmk main to pick up
+    # upstream changes.
     - name: zmk
-      remote: zmkfirmware
-      revision: main
+      remote: kupych
+      revision: totem/split-charging-state
       import: app/west.yml
     # Smart-layer behavior for the case modes (snake/kebab/camel/SCREAM):
     # a layer that stays active while "identifier" keys are typed and drops
