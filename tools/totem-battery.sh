@@ -103,12 +103,22 @@ side_for() {
   esac
 }
 
+# Cache one `gatt.list-attributes` dump per run. Every bluetoothctl invocation
+# registers and tears down an Adv Monitor with bluetoothd, so calling it once
+# per characteristic churned the daemon twice a minute for no reason.
+ATTRS=""
+list_attrs() {
+  [ -n "$ATTRS" ] || ATTRS=$(bluetoothctl gatt.list-attributes "$MAC" 2>/dev/null)
+  printf '%s\n' "$ATTRS"
+}
+
 # Populate parallel arrays SIDES[] (L/R), NAMES[] (char id), PCTS[] (number/"" ).
 collect() {
   SIDES=(); NAMES=(); PCTS=()
+  ATTRS=""   # re-read each pass, so --watch survives a re-flash moving handles
   local paths p out pct
   mapfile -t paths < <(
-    bluetoothctl gatt.list-attributes "$MAC" 2>/dev/null \
+    list_attrs \
       | grep -iB1 '00002a19-' \
       | grep -o "${BASE}/service[0-9a-f]*/char[0-9a-f]*"
   )
@@ -134,7 +144,7 @@ collect() {
 read_charging_bits() {
   local path out
   path=$(
-    bluetoothctl gatt.list-attributes "$MAC" 2>/dev/null \
+    list_attrs \
       | grep -iB1 "$CHARGING_UUID" \
       | grep -o "${BASE}/service[0-9a-f]*/char[0-9a-f]*" | head -1
   )
