@@ -49,8 +49,18 @@ case "${1:-}" in
   --waybar)   MODE=waybar; shift ;;
 esac
 MAC="${1:-FC:CD:2B:30:B8:9B}"
-ADAPTER="hci0"
-BASE="/org/bluez/${ADAPTER}/dev_${MAC//:/_}"
+# Find the device under whatever adapter it lives on. Hardcoding hci0 breaks
+# the moment the keyboard is paired via a different controller (e.g. a USB
+# dongle used in place of a flaky onboard one).
+find_base() {
+  local want="dev_${MAC//:/_}" found
+  found=$(busctl tree org.bluez 2>/dev/null |
+    grep -o "/org/bluez/hci[0-9]*/${want}" | head -1)
+  printf '%s\n' "${found:-/org/bluez/hci0/${want}}"
+}
+
+BASE="$(find_base)"
+ADAPTER="$(basename "$(dirname "$BASE")")"
 ICON=""   # nerd-font keyboard glyph
 BOLT="󱐋"    # nerd-font flash glyph, shown while a half is charging
 
