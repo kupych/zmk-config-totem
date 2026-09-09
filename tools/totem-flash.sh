@@ -13,9 +13,15 @@
 # for the next board. Esc/Cancel in the menu exits.
 #
 # Usage:
-#   tools/totem-flash.sh [--download] [FIRMWARE_DIR]
+#   tools/totem-flash.sh [--download] [--reset] [FIRMWARE_DIR]
 #     --download     fetch the latest master CI artifact first (needs gh)
+#     --reset        flash settings_reset to every board presented, no dialog
 #     FIRMWARE_DIR   where to find *left*.uf2 / *right*.uf2 (default: ./firmware)
+#
+# Replacing a half: flash --reset to BOTH halves first, then the normal
+# firmware. The central's bond to the peripheral survives &bt BT_CLR_ALL (that
+# only clears host profiles), so a new half with a new BLE address cannot claim
+# the taken slot until settings are wiped.
 set -uo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -23,7 +29,14 @@ FWDIR="$REPO_DIR/firmware"
 DOWNLOAD=0
 LABEL_RE='XIAO'          # bootloader volume label match (case-insensitive)
 
-case "${1:-}" in --download) DOWNLOAD=1; shift ;; esac
+RESET=0
+while :; do
+  case "${1:-}" in
+    --download) DOWNLOAD=1; shift ;;
+    --reset)    RESET=1; shift ;;
+    *) break ;;
+  esac
+done
 [ -n "${1:-}" ] && FWDIR="$1"
 
 note() { notify-send -a "totem-flash" "$@" 2>/dev/null || true; printf '%s\n' "$*"; }
@@ -41,11 +54,19 @@ fi
 
 # --- locate the two firmware files (newest of each, searched recursively) ------
 newest() { find "$FWDIR" -name "$1" -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-; }
-FW_LEFT="$(newest '*left*.uf2')"
-FW_RIGHT="$(newest '*right*.uf2')"
-[ -n "$FW_LEFT" ]  || die "no *left*.uf2 in $FWDIR (try --download)"
-[ -n "$FW_RIGHT" ] || die "no *right*.uf2 in $FWDIR (try --download)"
-printf 'left : %s\nright: %s\n' "$FW_LEFT" "$FW_RIGHT"
+if [ "$RESET" -eq 1 ]; then
+  # Same image for both halves, so no need to ask which is which.
+  FW_RESET="$(newest '*settings_reset*.uf2')"
+  [ -n "$FW_RESET" ] || die "no *settings_reset*.uf2 in $FWDIR (try --download)"
+  FW_LEFT="$FW_RESET"; FW_RIGHT="$FW_RESET"
+  printf 'reset: %s\n' "$FW_RESET"
+else
+  FW_LEFT="$(newest '*left*.uf2')"
+  FW_RIGHT="$(newest '*right*.uf2')"
+  [ -n "$FW_LEFT" ]  || die "no *left*.uf2 in $FWDIR (try --download)"
+  [ -n "$FW_RIGHT" ] || die "no *right*.uf2 in $FWDIR (try --download)"
+  printf 'left : %s\nright: %s\n' "$FW_LEFT" "$FW_RIGHT"
+fi
 
 # Find a connected bootloader device node by volume label, or empty.
 find_boot() { lsblk -rno NAME,LABEL | awk -v re="$LABEL_RE" 'tolower($2) ~ tolower(re) {print "/dev/"$1; exit}'; }
@@ -56,12 +77,16 @@ ask_half() { printf 'Left\nRight\n' | wofi --dmenu --no-cache -i \
 
 flash_one() {
   local devnode="$1" half fw mp
-  half="$(ask_half)"
-  case "$half" in
-    Left)  fw="$FW_LEFT"  ;;
-    Right) fw="$FW_RIGHT" ;;
-    *)     note "TOTEM flash" "Cancelled — exiting."; exit 0 ;;
-  esac
+  if [ "$RESET" -eq 1 ]; then
+    half="Reset"; fw="$FW_LEFT"   # both halves take the same settings_reset image
+  else
+    half="$(ask_half)"
+    case "$half" in
+      Left)  fw="$FW_LEFT"  ;;
+      Right) fw="$FW_RIGHT" ;;
+      *)     note "TOTEM flash" "Cancelled — exiting."; exit 0 ;;
+    esac
+  fi
 
   # Mount (rootless) if the desktop hasn't already auto-mounted it.
   mp="$(lsblk -rno MOUNTPOINT "$devnode" | head -1)"
