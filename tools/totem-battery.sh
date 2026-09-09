@@ -6,16 +6,22 @@
 # BlueZ doesn't surface them via the Battery1 D-Bus interface here, so we read
 # the GATT Battery Level characteristic (0x2a19) directly.
 #
-# Charging: ZMK advertises no charging flag over BLE. It *knows* whether a half
-# is USB-powered (zmk_usb_is_powered(), what the nice_view battery widget draws
-# a bolt from), but it only implements the mandatory BAS characteristic 0x2a19
-# (battery level); there is no BAS 1.1 Battery Level Status (0x2bed), and the
-# split proxy carries just the level byte, so the peripheral's USB state never
-# leaves the keyboard either. Publishing it would mean patching the firmware.
-# So charging here is *inferred*: we remember the last reading per half in a
-# state file and call a half "charging" once its percentage steps UP, until it
-# steps back down (or goes stale). ZMK reports coarsely and only ~every 60s, so
-# it can take a couple of minutes to show.
+# Charging: stock ZMK advertises no charging flag over BLE. It *knows* whether a
+# half is USB-powered (zmk_usb_is_powered(), what the nice_view battery widget
+# draws a bolt from), but only implements the mandatory BAS characteristic
+# 0x2a19; there is no BAS 1.1 Battery Level Status (0x2bed), and for a BLE split
+# the peripheral's level reaches the central over standard BAS too, which has no
+# room for a flag. Our ZMK fork adds CONFIG_ZMK_SPLIT_CHARGING_STATE, which
+# publishes a one-byte bitfield on the vendor characteristic below:
+#
+#   bit 0     the central (right half)
+#   bit 1     peripheral 0 (left half)
+#
+# When that characteristic is present we read it and report exactly. On stock
+# firmware it is absent, and we fall back to *inferring*: remember the last
+# reading per half in a state file and call a half "charging" once its
+# percentage steps UP, until it steps back down (or goes stale). ZMK reports
+# coarsely and only ~every 60s, so the fallback can lag by a couple of minutes.
 #
 # States: BlueZ's Device1.Connected tells us whether the keyboard is talking to
 # this host at all (off / out of range / asleep / paired to another host all
@@ -57,6 +63,9 @@ C_CRIT="#ff6b6b"
 C_CHARGE="#38bdf8"
 C_NONE="#6b7280"
 DASH="─"     # placeholder bar for a half with no reading
+
+# Vendor charging-state characteristic added by the ZMK fork (see header).
+CHARGING_UUID="00000001-0f9c-4b7a-9e2d-6c1a5f3b8e40"
 
 STATE="${XDG_RUNTIME_DIR:-/tmp}/totem-battery.state"
 STALE_SECS=1800   # forget a sticky "charging" flag after this long unchanged
@@ -120,8 +129,36 @@ collect() {
 # Compare this reading against the state file to guess whether a half is
 # charging. State lines are "SIDE PCT CHARGING LAST_CHANGE_EPOCH".
 # Sets CHARGING[side] to 1/0 and rewrites the state file.
+# Read the fork's charging bitfield. Prints the byte, or fails if the
+# characteristic isn't there (i.e. the keyboard is on stock ZMK).
+read_charging_bits() {
+  local path out
+  path=$(
+    bluetoothctl gatt.list-attributes "$MAC" 2>/dev/null \
+      | grep -iB1 "$CHARGING_UUID" \
+      | grep -o "${BASE}/service[0-9a-f]*/char[0-9a-f]*" | head -1
+  )
+  [ -n "$path" ] || return 1
+  out=$(busctl call org.bluez "$path" org.bluez.GattCharacteristic1 ReadValue 'a{sv}' 0 2>/dev/null) \
+    || return 1
+  printf '%s\n' "$out" | grep -o '[0-9]*$'
+}
+
 declare -A CHARGING=()
+CHARGING_SOURCE=inferred
 update_charging() {
+  CHARGING=()
+
+  # Prefer the firmware's own answer; fall back to guessing from level changes.
+  local bits
+  if bits=$(read_charging_bits) && [ -n "$bits" ]; then
+    CHARGING_SOURCE=firmware
+    CHARGING[R]=$(((bits & 1) ? 1 : 0))  # bit 0: central  = right half
+    CHARGING[L]=$(((bits & 2) ? 1 : 0))  # bit 1: periph 0 = left half
+    return
+  fi
+  CHARGING_SOURCE=inferred
+
   local -A old_pct=() old_chg=() old_ts=()
   local side pct chg ts now; now=$(date +%s)
   if [ -r "$STATE" ]; then
@@ -261,6 +298,7 @@ print_waybar() {
     fi
   done
   bars="${bars% }"
+  [ "$CHARGING_SOURCE" = inferred ] && tip+="${nl}(charging inferred from level changes)"
 
   # Link is up but neither half answered — a transient GATT failure, not an
   # absent keyboard; keep it visually distinct from "asleep".
