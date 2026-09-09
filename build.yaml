@@ -3,4 +3,11 @@ include:
     shield: totem_left
   - board: xiao_ble//zmk
     shield: totem_right
-# there is no settingsreset (needed) for the XIAO
+  # Flash to BOTH halves before the normal firmware when replacing a half.
+  # The central's bond to the peripheral is NOT cleared by &bt BT_CLR_ALL --
+  # that only loops over host profiles (ble.c, zmk_ble_clear_all_bonds) -- so a
+  # replacement half with a new BLE address cannot claim the taken slot.
+  # settings_reset builds with ZMK_BLE=n so the halves don't re-pair until the
+  # real firmware is back on.
+  - board: xiao_ble//zmk
+    shield: settings_reset
