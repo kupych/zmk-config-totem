@@ -103,12 +103,32 @@ side_for() {
   esac
 }
 
-# Cache one `gatt.list-attributes` dump per run. Every bluetoothctl invocation
-# registers and tears down an Adv Monitor with bluetoothd, so calling it once
-# per characteristic churned the daemon twice a minute for no reason.
+# List this device's GATT characteristics as "<path> <uuid>" lines.
+#
+# Deliberately NOT bluetoothctl: it registers a BlueZ AdvertisementMonitor on
+# startup, which makes the controller run a BLE scan. Firing that from a Waybar
+# poll steals radio time from connected devices -- the keyboard included --
+# causing typing lag and dropped key-up events (the same reason
+# ~/.config/waybar/scripts/bluetooth_status.sh avoids it). Asking the
+# ObjectManager is a plain local D-Bus read: no monitor, no scan, no radio.
 ATTRS=""
 list_attrs() {
-  [ -n "$ATTRS" ] || ATTRS=$(bluetoothctl gatt.list-attributes "$MAC" 2>/dev/null)
+  [ -n "$ATTRS" ] || ATTRS=$(
+    busctl --json=short call org.bluez / \
+      org.freedesktop.DBus.ObjectManager GetManagedObjects 2>/dev/null |
+      BASE="$BASE" python3 -c '
+import json, os, sys
+base = os.environ["BASE"]
+try:
+    objs = json.load(sys.stdin)["data"][0]
+except Exception:
+    sys.exit(1)
+for path, ifaces in objs.items():
+    chrc = ifaces.get("org.bluez.GattCharacteristic1")
+    if chrc and path.startswith(base + "/"):
+        print(path, chrc["UUID"]["data"])
+' 2>/dev/null
+  )
   printf '%s\n' "$ATTRS"
 }
 
@@ -117,11 +137,7 @@ collect() {
   SIDES=(); NAMES=(); PCTS=()
   ATTRS=""   # re-read each pass, so --watch survives a re-flash moving handles
   local paths p out pct
-  mapfile -t paths < <(
-    list_attrs \
-      | grep -iB1 '00002a19-' \
-      | grep -o "${BASE}/service[0-9a-f]*/char[0-9a-f]*"
-  )
+  mapfile -t paths < <(list_attrs | awk 'tolower($2) ~ /^00002a19-/ {print $1}')
   for p in "${paths[@]:-}"; do
     [ -z "$p" ] && continue
     # ReadValue returns "ay <count> <byte ...>"; the byte is the percentage.
@@ -143,11 +159,7 @@ collect() {
 # characteristic isn't there (i.e. the keyboard is on stock ZMK).
 read_charging_bits() {
   local path out
-  path=$(
-    list_attrs \
-      | grep -iB1 "$CHARGING_UUID" \
-      | grep -o "${BASE}/service[0-9a-f]*/char[0-9a-f]*" | head -1
-  )
+  path=$(list_attrs | awk -v u="$CHARGING_UUID" 'tolower($2) == u {print $1}' | head -1)
   [ -n "$path" ] || return 1
   out=$(busctl call org.bluez "$path" org.bluez.GattCharacteristic1 ReadValue 'a{sv}' 0 2>/dev/null) \
     || return 1
