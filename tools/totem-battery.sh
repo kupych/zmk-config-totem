@@ -63,6 +63,10 @@ BASE="$(find_base)"
 ADAPTER="$(basename "$(dirname "$BASE")")"
 ICON=""   # nerd-font keyboard glyph
 BOLT="󱐋"    # nerd-font flash glyph, shown while a half is charging
+# Bolt overlay geometry for the blocks style, in pango units (1/1024 pt).
+# Tuned by pixel measurement for Inter 18px; retune if the waybar font changes.
+BOLT_PULL=-26000   # negative letter spacing that centres the bolt on its bar
+BOLT_GAP=16000     # spacing on the following space that restores the gap
 
 # Thresholds and colours (matching the Waybar stylesheet palette).
 WARN_PCT=50
@@ -71,6 +75,7 @@ C_GOOD="#4ade80"
 C_WARN="#fbbf24"
 C_CRIT="#ff6b6b"
 C_CHARGE="#38bdf8"
+C_BOLT="#ffffff"
 C_NONE="#6b7280"
 DASH="─"     # placeholder bar for a half with no reading
 
@@ -312,7 +317,7 @@ print_waybar() {
   local i
   for i in "${!PCTS[@]}"; do pct_of[${SIDES[$i]}]="${PCTS[$i]}"; done
 
-  local nl='\n' side pct bars="" tip="TOTEM" min="" any_charging=0 known=0
+  local nl='\n' side pct bars="" tip="TOTEM" min="" any_charging=0 known=0 bolt_alpha
   for side in L R; do
     pct="${pct_of[$side]:-}"
     if [ -z "$pct" ]; then
@@ -326,7 +331,16 @@ print_waybar() {
     if [ "${TOTEM_BAR_STYLE:-blocks}" = gauge ]; then
       bars+="<span color='$(colour_for "$pct" "$side")'>${side}$(gauge_for "$pct")</span> "
     else
-      bars+=" <span color='$(colour_for "$pct" "$side")'>$(block_for "$pct")</span>"
+      # One space before the first half; the spaced gap after each bolt
+      # separates the halves.
+      [ "$side" = L ] && bars+=" "
+      bars+="<span color='$(colour_for "$pct" "$side")'>$(block_for "$pct")</span>"
+      # The bolt is always emitted, pulled back over its bar, and transparent
+      # unless that half is charging. The module keeps the same width either
+      # way, so neighbouring modules don't shift when charging starts or stops.
+      bolt_alpha=1; [ "${CHARGING[$side]:-0}" = 1 ] && bolt_alpha=65535
+      bars+="<span color='$C_BOLT' letter_spacing='$BOLT_PULL' fgalpha='$bolt_alpha'>${BOLT}</span>"
+      bars+="<span letter_spacing='$BOLT_GAP'> </span>"
     fi
   done
   bars="${bars% }"
@@ -344,7 +358,8 @@ print_waybar() {
   local cls="good"
   if   [ "$min" -lt "$CRIT_PCT" ]; then cls="critical"
   elif [ "$min" -lt "$WARN_PCT" ]; then cls="warning"; fi
-  [ "$any_charging" = 1 ] && bars+=" ${BOLT}"
+  # The blocks style draws the bolt on each charging half; gauge keeps one at the end.
+  [ "$any_charging" = 1 ] && [ "${TOTEM_BAR_STYLE:-blocks}" = gauge ] && bars+=" ${BOLT}"
 
   printf '{"text":"%s %s","percentage":%s,"class":"%s","tooltip":"%s"}\n' \
     "$ICON" "$bars" "$min" "$cls" "$tip"
