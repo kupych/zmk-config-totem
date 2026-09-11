@@ -12,9 +12,12 @@ manifest:
     # standard BAS too, so there was nowhere to put one. Read by
     # tools/totem-battery.sh; rebase on zmkfirmware/zmk main to pick up
     # upstream changes.
+    # totem/ble-layer-state stacks CONFIG_ZMK_BLE_LAYER_STATE on top: the
+    # active/locked layer bitmasks on a second vendor characteristic, so the
+    # keymap HUD can follow layers without sentinel F-keys.
     - name: zmk
       remote: kupych
-      revision: totem/split-charging-state
+      revision: totem/ble-layer-state
       import: app/west.yml
     # Smart-layer behavior for the case modes (snake/kebab/camel/SCREAM):
     # a layer that stays active while "identifier" keys are typed and drops
