@@ -107,6 +107,11 @@ gdbus monitor --system --dest org.bluez --object-path "$BASE" 2>/dev/null |
         # A wedge with no line here means the keyboard stopped responding while
         # the link was still nominally up -- a different fault entirely.
         log "DISCONNECTED" ;;
+      *"Device1.Disconnected ("*)
+        # BlueZ's Disconnected signal carries the reason: Reason.Timeout means
+        # the radio link was lost, Reason.Remote means the keyboard hung up,
+        # Reason.Local means this machine dropped it.
+        log "DISCONNECT REASON  $(printf '%s' "$line" | grep -o 'Disconnected (.*)' | cut -c1-160)" ;;
       *"'ServicesResolved': <true>"*)
         # Safe to read GATT only once the services are back.
         log "services resolved  $(snapshot)" ;;
