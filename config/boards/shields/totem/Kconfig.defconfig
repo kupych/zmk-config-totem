@@ -1,7 +1,10 @@
 # Copyright (c) 2022 The ZMK Contributors
 # SPDX-License-Identifier: MIT
 
-if SHIELD_TOTEM_RIGHT
+# The left half is the split central: it holds the host connection, so it is
+# the half that drains faster, and it sits on the side nearest the desktop,
+# which makes it the convenient one to plug in.
+if SHIELD_TOTEM_LEFT
 
 config ZMK_KEYBOARD_NAME
     default "TOTEM"
