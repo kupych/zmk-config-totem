@@ -14,8 +14,11 @@
 # room for a flag. Our ZMK fork adds CONFIG_ZMK_SPLIT_CHARGING_STATE, which
 # publishes a one-byte bitfield on the vendor characteristic below:
 #
-#   bit 0     the central (right half)
-#   bit 1     peripheral 0 (left half)
+#   bit 0     the central half
+#   bit 1     peripheral 0 (the other half)
+#
+# Which physical half is central is set in the shield's Kconfig.defconfig; see
+# CENTRAL below.
 #
 # When that characteristic is present we read it and report exactly. On stock
 # firmware it is absent, and we fall back to *inferring*: remember the last
@@ -48,7 +51,33 @@ case "${1:-}" in
     case "${1:-}" in (''|*[!0-9]*) ;; (*) INTERVAL="$1"; shift ;; esac ;;
   --waybar)   MODE=waybar; shift ;;
 esac
-MAC="${1:-FC:CD:2B:30:B8:9B}"
+MAC="${1:-}"
+# Find the keyboard by name rather than by address. The host-facing address is
+# the central half's, so it changes whenever the central role moves between
+# halves (or a half is replaced); looking it up means that needs no edits here.
+# Prefers a connected device, then any paired one. An explicit MAC still wins.
+find_mac() {
+  busctl --json=short call org.bluez / org.freedesktop.DBus.ObjectManager \
+    GetManagedObjects 2>/dev/null | python3 -c '
+import json, sys
+try:
+    objs = json.load(sys.stdin)["data"][0]
+except Exception:
+    sys.exit(0)
+found = []
+for path, ifaces in objs.items():
+    d = ifaces.get("org.bluez.Device1")
+    if not d or d.get("Alias", {}).get("data") != "TOTEM":
+        continue
+    if not d.get("Paired", {}).get("data"):
+        continue
+    found.append((not d.get("Connected", {}).get("data"), d["Address"]["data"]))
+if found:
+    print(sorted(found)[0][1])
+'
+}
+[ -n "$MAC" ] || MAC="$(find_mac)"
+[ -n "$MAC" ] || MAC="00:00:00:00:00:00"   # nothing paired: reports "unpaired"
 # Find the device under whatever adapter it lives on. Hardcoding hci0 breaks
 # the moment the keyboard is paired via a different controller (e.g. a USB
 # dongle used in place of a flaky onboard one).
@@ -61,6 +90,16 @@ find_base() {
 
 BASE="$(find_base)"
 ADAPTER="$(basename "$(dirname "$BASE")")"
+# Which physical half is the split central. It is the half the host bonds to,
+# so the connected address says which XIAO it is. FC:CD:2B:30:B8:9B is the
+# right half's XIAO (central until 2026-09-13); any other address is taken to
+# be the left half. TOTEM_CENTRAL_SIDE=L|R overrides.
+case "${TOTEM_CENTRAL_SIDE:-}" in
+  L|R) CENTRAL="$TOTEM_CENTRAL_SIDE" ;;
+  *)   case "$MAC" in FC:CD:2B:30:B8:9B) CENTRAL=R ;; *) CENTRAL=L ;; esac ;;
+esac
+PERIPHERAL=$([ "$CENTRAL" = L ] && echo R || echo L)
+
 ICON=""   # nerd-font keyboard glyph
 BOLT="󱐋"    # nerd-font flash glyph, shown while a half is charging
 # Bolt overlay geometry for the blocks style, in pango units (1/1024 pt).
@@ -106,15 +145,15 @@ conn_state() {
   esac
 }
 
-# Map a GATT characteristic id to a physical half. The right half is the split
-# central (SHIELD_TOTEM_RIGHT); ZMK registers its own battery service first
-# (lower handle), the proxied peripheral after. If these ever look swapped after
-# a re-flash, just swap the two ids below.
+# Map a battery characteristic to a physical half. ZMK registers the central's
+# own battery service first (lower handle) and the proxied peripheral's after it
+# (its user description reads "Peripheral 0"), so order says which is which.
+# $1 is the characteristic's position among the battery characteristics.
 side_for() {
   case "$1" in
-    char0011) echo "R" ;;   # central / right
-    char0016) echo "L" ;;   # peripheral / left
-    *)        echo "?" ;;
+    0) echo "$CENTRAL" ;;
+    1) echo "$PERIPHERAL" ;;
+    *) echo "?" ;;
   esac
 }
 
@@ -152,7 +191,9 @@ collect() {
   SIDES=(); NAMES=(); PCTS=()
   ATTRS=""   # re-read each pass, so --watch survives a re-flash moving handles
   local paths p out pct
-  mapfile -t paths < <(list_attrs | awk 'tolower($2) ~ /^00002a19-/ {print $1}')
+  # Sorted by path, so the central's battery (lower handle) comes first.
+  mapfile -t paths < <(list_attrs | awk 'tolower($2) ~ /^00002a19-/ {print $1}' | sort)
+  local idx=0
   for p in "${paths[@]:-}"; do
     [ -z "$p" ] && continue
     # ReadValue returns "ay <count> <byte ...>"; the byte is the percentage.
@@ -163,7 +204,8 @@ collect() {
     # ZMK seeds it to 0 and only pushes on change, so a half that hasn't
     # checked in since boot sits at 0. Treat it as unknown (see zmk#2972).
     [ "$pct" = 0 ] && pct=""
-    SIDES+=("$(side_for "${p##*/}")"); NAMES+=("${p##*/}"); PCTS+=("$pct")
+    SIDES+=("$(side_for "$idx")"); NAMES+=("${p##*/}"); PCTS+=("$pct")
+    idx=$((idx + 1))
   done
 }
 
@@ -190,8 +232,8 @@ update_charging() {
   local bits
   if bits=$(read_charging_bits) && [ -n "$bits" ]; then
     CHARGING_SOURCE=firmware
-    CHARGING[R]=$(((bits & 1) ? 1 : 0))  # bit 0: central  = right half
-    CHARGING[L]=$(((bits & 2) ? 1 : 0))  # bit 1: periph 0 = left half
+    CHARGING[$CENTRAL]=$(((bits & 1) ? 1 : 0))     # bit 0: central
+    CHARGING[$PERIPHERAL]=$(((bits & 2) ? 1 : 0))  # bit 1: peripheral 0
     return
   fi
   CHARGING_SOURCE=inferred

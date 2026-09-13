@@ -41,7 +41,33 @@ case "${1:-}" in
   --path) MODE=path; shift ;;
 esac
 
-MAC="${1:-FC:CD:2B:30:B8:9B}"
+MAC="${1:-}"
+# Find the keyboard by name rather than by address. The host-facing address is
+# the central half's, so it changes whenever the central role moves between
+# halves (or a half is replaced); looking it up means that needs no edits here.
+# Prefers a connected device, then any paired one. An explicit MAC still wins.
+find_mac() {
+  busctl --json=short call org.bluez / org.freedesktop.DBus.ObjectManager \
+    GetManagedObjects 2>/dev/null | python3 -c '
+import json, sys
+try:
+    objs = json.load(sys.stdin)["data"][0]
+except Exception:
+    sys.exit(0)
+found = []
+for path, ifaces in objs.items():
+    d = ifaces.get("org.bluez.Device1")
+    if not d or d.get("Alias", {}).get("data") != "TOTEM":
+        continue
+    if not d.get("Paired", {}).get("data"):
+        continue
+    found.append((not d.get("Connected", {}).get("data"), d["Address"]["data"]))
+if found:
+    print(sorted(found)[0][1])
+'
+}
+[ -n "$MAC" ] || MAC="$(find_mac)"
+[ -n "$MAC" ] || MAC="00:00:00:00:00:00"   # nothing paired: reports "unpaired"
 # Find the device under whatever adapter it lives on. Hardcoding hci0 breaks
 # the moment the keyboard is paired via a different controller (e.g. a USB
 # dongle used in place of a flaky onboard one).
