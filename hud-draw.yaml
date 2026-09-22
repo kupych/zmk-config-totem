@@ -58,8 +58,10 @@ parse_config:
     "&fat_arrow": "=>"
     "&walrus": ":="
     "&kp F19": "HUD"
-    "&reaper_tog": "REAPR"
-    "&game_tog": "GAME"
+    "&tog REAPER": "REAPR"
+    "&tog 5": "REAPR"
+    "&tog GAME": "GAME"
+    "&tog 4": "GAME"
     "&mkp MB1": "LC"
     "&mkp MB2": "RC"
     "&mkp MB3": "MC"
@@ -73,10 +75,13 @@ parse_config:
     "&scream": "SCRM"
     # Readable stand-ins for bindings keymap-drawer can't label itself:
     # the WMOD pinky (Cmd+Ctrl+Alt renders as an overflowing "Ctl+Alt+LGUI"),
-    # the thumb layer-taps (hold side leaked the raw sentinel macro names),
+    # the thumb layer-taps (hold side renders as a bare layer number),
     # and caps-word on NAV.
     "&kp LC(LA(LGUI))": "WMOD"
-    "&mo_f16 1": "NAV"
-    "&mo_f17 2": "SYM"
-    "&adj_f18": "ADJ"
+    "&mo 1": "NAV"
+    "&mo NAV": "NAV"
+    "&mo 2": "SYM"
+    "&mo SYM": "SYM"
+    "&mo 3": "ADJ"
+    "&mo ADJ": "ADJ"
     "&caps_word": "CWORD"

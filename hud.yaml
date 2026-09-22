@@ -10,17 +10,13 @@ keyboard_name:
   - "ZMK Project TOTEM Keyboard"  # over USB
 draw_config: ./hud-draw.yaml      # TOTEM combo/macro relabels (|>, :=, HUD, clicks)
 
-# The firmware (config/totem.keymap) holds F16/F17/F18 per layer and taps F19
-# to toggle — see the mo_f16/lt_nav/adj_f18 macros and combo_hud there.
-sentinels:
-  F16: 1   # NAV
-  F17: 2   # SYM
-  F18: 3   # ADJ
-# Latching layers (toggled via &tog, so nothing is held): the firmware taps a
-# key when toggling, and the HUD latches that layer on/off to match.
-#   F20 -> REAPER (mac-safe), F21 -> GAME (Linux-only; macOS has no F21 keycode,
-#   so on a Mac the GAME entry is simply ignored).
-sticky_sentinels:
-  F20: 5   # REAPER
-  F21: 4   # GAME
+# The firmware publishes its layer state over BLE
+# (CONFIG_ZMK_BLE_LAYER_STATE in our ZMK fork), so the HUD follows layers
+# exactly and no sentinel keys are emitted at all. The keymap is plain
+# &mo/&lt/&tog again; see the top of config/totem.keymap.
+layer_source: ble
+sentinels: {}
+sticky_sentinels: {}
+
+# combo_hud still taps F19 to show/hide the overlay — the last in-band signal.
 toggle: F19

@@ -25,7 +25,6 @@
 #define SNAKE 6
 #define KEBAB 7
 #define CAMEL 8
-#define PHONE 9
 
 // WMOD = Cmd+Ctrl+Alt held as one chord -- the macOS window-manager (AeroSpace)
 // modifier. Shift is deliberately left OUT so WMOD+Shift stays a *distinct*
@@ -38,18 +37,19 @@
 // clear of the Ctrl+Alt+F# TTY-switch chords.
 #define WMOD LC(LA(LGUI))
 
-// The layer keys hold F16/F17/F18 alongside &mo, and the sticky toggles tap
-// F19/F20/F21, purely so the desktop keymap-hud daemon (hud.yaml) can follow
-// the active layer. Harmless on macOS/Linux, where F13-F24 have no default
-// action -- but a host that *decodes* them turns every layer press into
-// garbage: iOS/Termius renders F16 as ^P and F17 as ^Q, and ^Q is XON, so a
-// stray SYM hold can freeze terminal output until you send ^S/^Q by hand.
+// Layer changes were once signalled to the desktop keymap-hud daemon in-band:
+// the layer keys held F16/F17/F18 and the toggles tapped F20/F21 alongside the
+// real behavior. Inert on macOS/Linux, but a host that *decodes* them turned
+// every layer press into garbage (iOS/Termius renders F16 as ^P and F17 as ^Q,
+// and ^Q is XON, so a stray SYM hold could freeze terminal output) -- which is
+// what the PHONE override layer existed to dodge.
 //
-// PHONE is the escape hatch: an override layer that swaps the two thumb
-// layer-taps for stock &lt, dropping the sentinels. It rides on the BT profile
-// (see phone_sel/host_sel) so switching hosts switches the policy in one press
-// -- no reflash, which matters when the host changes on a train and not just
-// at the start of a trip. Profile 4 is the phone; 0-3 are HUD hosts.
+// All of that is gone. CONFIG_ZMK_BLE_LAYER_STATE (our ZMK fork) publishes the
+// active/locked layer bitmasks on a GATT characteristic and the HUD reads them
+// off BlueZ, so layer keys are plain &mo/&lt/&tog again and nothing leaks to
+// the host. Only the HUD *toggle* still taps a key (F19, combo_hud below).
+//
+// Profile 4 is the phone; 0-3 are computers (see phone_sel/host_sel).
 #define PHONE_PROFILE 4
 
 &mt {
@@ -61,44 +61,38 @@
 
 / {
     behaviors {
-        // Layer-taps that also hold a "sentinel" key while the layer is active,
-        // so the live keymap HUD (watching evdev) can follow the layer. Tap is
-        // TAB/ESC exactly as before; hold = momentary layer + F16/F17.
-        // Sentinel choice is fussy because it must be inert everywhere this
-        // board roams: F13-F15 dim the display on macOS and LANG1-3 toggle the
-        // IME under fcitx/mozc on Linux. F16-F18 have no default action on
-        // either OS; their only downside is terminals encode them, which we
-        // swallow host-side (ghostty: keybind = f16/f17/f18 = ignore) so they
-        // don't leak into vim's insert mode. Matches the built-in &lt feel
-        // (tap-preferred, 200ms) so typing is unchanged.
+        // Thumb layer-taps: tap = TAB/ESC, hold = momentary NAV/SYM. Kept as
+        // explicit hold-taps rather than stock &lt so the feel stays exactly
+        // where it was tuned (tap-preferred, 200ms) -- only the sentinel hold
+        // that used to ride along with &mo is gone.
         lt_nav: layer_tap_nav {
             compatible = "zmk,behavior-hold-tap";
             #binding-cells = <2>;
             flavor = "tap-preferred";
             tapping-term-ms = <200>;
-            bindings = <&mo_f16>, <&kp>;
+            bindings = <&mo>, <&kp>;
         };
         lt_sym: layer_tap_sym {
             compatible = "zmk,behavior-hold-tap";
             #binding-cells = <2>;
             flavor = "tap-preferred";
             tapping-term-ms = <200>;
-            bindings = <&mo_f17>, <&kp>;
+            bindings = <&mo>, <&kp>;
         };
 
         // Case modes (zmk-auto-layer module): &smart_case <layer> turns a case
         // layer on and keeps it on only while "identifier" keys are typed --
         // alphas, digits, _ - and backspace/delete. Any other keycode (enter,
         // tab-tap, esc-tap, punctuation) drops back to BASE automatically, so
-        // there is nothing to un-toggle. F16/F17 are the NAV/SYM sentinels:
-        // listing them lets you hold NAV mid-identifier to type digits without
-        // killing the mode. On the case layers SPACE becomes the separator
+        // there is nothing to un-toggle. Holding NAV mid-identifier to type
+        // digits is free now that layer keys emit no keycode at all, so the
+        // mode survives it. On the case layers SPACE becomes the separator
         // (see the *_spc morphs); Shift+SPACE emits a real space, which also
         // ends the mode since SPACE is not in this list.
         smart_case: smart_case {
             compatible = "zmk,behavior-auto-layer";
             #binding-cells = <1>;
-            continue-list = <UNDER MINUS BSPC DEL F16 F17>;
+            continue-list = <UNDER MINUS BSPC DEL>;
             ignore-alphas;
             ignore-numbers;
             ignore-modifiers;
@@ -110,7 +104,7 @@
         caps_snake: caps_snake {
             compatible = "zmk,behavior-caps-word";
             #binding-cells = <0>;
-            continue-list = <UNDER MINUS BSPC DEL F16 F17>;
+            continue-list = <UNDER MINUS BSPC DEL>;
         };
 
         // SPACE replacements for the case layers. Plain tap = the separator
@@ -137,58 +131,13 @@
     };
 
     macros {
-        // Hold &mo <layer> together with the layer's sentinel key until release.
-        // mo_f16/mo_f17 take the layer number as a parameter (for the hold-taps
-        // above); adj_f18 is fixed to layer 3 (ADJ has no tap action). See the
-        // lt_nav note for why F16-F18; the HUD daemon maps F16->NAV, F17->SYM,
-        // F18->ADJ.
-        mo_f16: mo_f16 {
-            compatible = "zmk,behavior-macro-one-param";
-            #binding-cells = <1>;
-            wait-ms = <0>;
-            tap-ms = <0>;
-            bindings = <&macro_param_1to1>,
-                       <&macro_press &mo MACRO_PLACEHOLDER &kp F16>,
-                       <&macro_pause_for_release>,
-                       <&macro_param_1to1>,
-                       <&macro_release &mo MACRO_PLACEHOLDER &kp F16>;
-        };
-        mo_f17: mo_f17 {
-            compatible = "zmk,behavior-macro-one-param";
-            #binding-cells = <1>;
-            wait-ms = <0>;
-            tap-ms = <0>;
-            bindings = <&macro_param_1to1>,
-                       <&macro_press &mo MACRO_PLACEHOLDER &kp F17>,
-                       <&macro_pause_for_release>,
-                       <&macro_param_1to1>,
-                       <&macro_release &mo MACRO_PLACEHOLDER &kp F17>;
-        };
-        adj_f18: adj_f18 {
-            compatible = "zmk,behavior-macro";
-            #binding-cells = <0>;
-            wait-ms = <0>;
-            tap-ms = <0>;
-            bindings = <&macro_press &mo 3 &kp F18>,
-                       <&macro_pause_for_release>,
-                       <&macro_release &mo 3 &kp F18>;
-        };
-
-        // Profile-select keys that also set the sentinel policy. ZMK has no way
-        // to condition a binding on the active BT profile (conditional-layers
-        // key off other *layers*, not the endpoint), so instead of reading the
-        // profile we set both at once from the one key that already means
-        // "I changed host". &to rather than &tog: pressing the phone key twice
-        // must stay on phone, not flip back. &to BASE also clears a toggled
-        // GAME/REAPER, which is what you want when handing the board to a
-        // different machine anyway.
-        //
-        // Caveat: &bt BT_NXT / BT_PRV still cycle profiles without touching the
-        // layer, so use the explicit BT_SEL keys when the host actually changes.
+        // Profile-select keys that also land the board back on BASE: &to BASE
+        // clears a toggled GAME/REAPER, which is what you want when handing it
+        // to a different machine anyway.
         phone_sel: phone_sel {
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
-            bindings = <&bt BT_SEL PHONE_PROFILE>, <&to PHONE>;
+            bindings = <&bt BT_SEL PHONE_PROFILE>, <&to BASE>;
         };
         // Also drops the phone's link on the way out. iOS hides the on-screen
         // keyboard for as long as *any* HID keyboard is connected, and merely
@@ -230,17 +179,6 @@
             bindings = <&kp COLON &kp EQUAL>;
         };
 
-        // Toggle the REAPER app layer AND signal the keymap HUD: &tog flips the
-        // layer, &kp F20 taps the HUD's sticky sentinel (see hud.yaml's
-        // sticky_sentinels: F20 -> 5). Pressing again toggles both back off in
-        // lockstep. F20 is inert on Linux/macOS like F16-F19; swallow it in your
-        // terminal too (ghostty: keybind = f20=ignore).
-        reaper_tog: reaper_tog {
-            compatible = "zmk,behavior-macro";
-            #binding-cells = <0>;
-            bindings = <&tog REAPER>, <&kp F20>;
-        };
-
         // SCREAMING_SNAKE = caps word + the snake layer at once. Both watch
         // the same continue-list, so one exit keypress ends both together.
         scream: scream {
@@ -249,14 +187,6 @@
             bindings = <&caps_snake &smart_case SNAKE>;
         };
 
-        // Same idea for GAME: toggle the layer and tap F21 so the HUD follows
-        // it. F21 is inert on Linux but has no macOS virtual keycode, so this
-        // sticky layer is Linux-only (fine — no gaming on the Mac).
-        game_tog: game_tog {
-            compatible = "zmk,behavior-macro";
-            #binding-cells = <0>;
-            bindings = <&tog GAME>, <&kp F21>;
-        };
     };
 
     combos {
@@ -366,7 +296,8 @@
 
         // Both outer pinkies (bottom row, opposite halves) -> toggle keymap HUD.
         // Sends F19: an inert key on Linux and macOS that the host HUD listens
-        // for (ghostty swallows it like the layer sentinels). No `layers`
+        // for (swallow it in your terminal: ghostty keybind = f19=ignore).
+        // The last in-band HUD signal, now that layers ride BLE. No `layers`
         // restriction so it works from any layer; wide timeout since it's a
         // deliberate two-handed chord, not a roll.
         combo_hud {          // pos 20 + 31  ->  F19 (HUD toggle)
@@ -382,17 +313,17 @@
         combo_game {         // pos 0 + 9  ->  toggle GAME layer
             timeout-ms = <50>;
             key-positions = <0 9>;
-            bindings = <&game_tog>;
+            bindings = <&tog GAME>;
         };
 
-        // Both inner top keys (B + J) -> toggle the REAPER app layer (and tell
-        // the HUD via reaper_tog). Two-handed and on rare-adjacent letters, so
+        // Both inner top keys (B + J) -> toggle the REAPER app layer.
+        // Two-handed and on rare-adjacent letters, so
         // it won't misfire while typing. No `layers` restriction, so the same
         // chord both enters REAPER and exits it.
         combo_reaper {       // pos 4 + 5  ->  toggle REAPER layer
             timeout-ms = <45>;
             key-positions = <4 5>;
-            bindings = <&reaper_tog>;
+            bindings = <&tog REAPER>;
         };
     };
 
@@ -447,7 +378,7 @@
         &kp ESC    &sk CLCK   &kp UP      &kp LGUI   &kp LBRC    &kp RBRC  &kp N7     &kp N8     &kp N9     &kp KP_PLUS
         &kp LSHFT  &kp LEFT   &kp DOWN    &kp RIGHT  &kp LBKT    &kp RBKT  &kp N4     &kp N5     &kp N6     &kp KP_MINUS
 &trans  &kp DEL    &kp PG_UP  &caps_word  &kp PG_DN  &kp LPAR    &kp RPAR  &kp N1     &kp N2     &kp N3     &kp KP_MULTIPLY  &kp UNDER
-                              &trans      &trans     &trans      &adj_f18  &kp N0     &trans
+                              &trans      &trans     &trans      &mo ADJ   &kp N0     &trans
             >;
         };
 
@@ -473,7 +404,7 @@
         &kp EXCL  &kp AT     &kp HASH   &kp DLLR  &kp PRCNT    &kp CARET  &kp AMPS   &kp STAR   &kp QMARK  &kp SQT
         &kp PLUS  &kp EQUAL  &kp LPAR   &kp RPAR  &kp DQT      &kp COLON  &kp RBKT   &kp LBKT   &kp RBRC   &kp LBRC
 &trans  &kp LT    &kp PIPE   &kp MINUS  &kp GT    &kp BSLH     &kp GRAVE  &kp UNDER  &kp SLASH  &kp TILDE  &kp SEMI  &trans
-                             &trans     &trans    &adj_f18     &trans     &kp C_PP   &trans
+                             &trans     &trans    &mo ADJ      &trans     &kp C_PP   &trans
             >;
         };
 
@@ -530,7 +461,7 @@
             bindings = <
               &kp T       &kp Q       &kp W        &kp E        &kp R        &kp GRAVE  &kp N7     &kp N8     &kp N9      &kp MINUS
               &kp G       &kp A       &kp S        &kp D        &kp F        &kp TAB    &kp N4     &kp N5     &kp N6      &kp DOT
-&kp TAB       &kp B       &kp Z       &kp X        &kp C        &kp V        &kp ESC    &kp N1     &kp N2     &kp N3      &kp N0     &game_tog
+&kp TAB       &kp B       &kp Z       &kp X        &kp C        &kp V        &kp ESC    &kp N1     &kp N2     &kp N3      &kp N0     &tog GAME
                                       &kp LCTRL    &kp LSHFT    &kp SPACE    &kp RET    &kp BSPC   &kp DEL
             >;
         };
@@ -606,22 +537,6 @@
         };
 
         // ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-
-        // Sentinel-free thumbs for hosts that decode F13-F24 (see the PHONE
-        // note at the top). Sits above NAV/SYM in the stack, so it wins on the
-        // two thumb positions while every &trans still falls through to
-        // whatever layer is underneath -- NAV and SYM are unaffected. Stock &lt
-        // is tap-preferred/200ms, the same feel lt_nav/lt_sym were tuned to, so
-        // typing is identical; only the F16/F17 hold is gone.
-        phone_layer {
-            display-name = "PHONE";
-            bindings = <
-              &trans      &trans      &trans       &trans       &trans       &trans   &trans       &trans       &trans      &trans
-              &trans      &trans      &trans       &trans       &trans       &trans   &trans       &trans       &trans      &trans
-&trans        &trans      &trans      &trans       &trans       &trans       &trans   &trans       &trans       &trans      &trans      &trans
-                                      &trans       &lt 1 TAB    &trans       &trans   &lt 2 ESC    &trans
-            >;
-        };
 
         // ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
     };
